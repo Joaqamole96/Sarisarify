@@ -1,1 +1,58 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Android
+android/app/build/
+android/build/
+*.apk
+*.aar
+*.so
+
+# iOS (if applicable)
+ios/build/
+*.ipa
+
+# Firebase
+.firebase/
+
+# VS Code
+.vscode/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+
+# Package manager lock files (optional, but sometimes ignored)
+# package-lock.json
+# yarn.lock

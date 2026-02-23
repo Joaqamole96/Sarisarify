@@ -16,7 +16,7 @@ npm install
 
 ### 2. Firebase setup
 1. Create a Firebase project at https://console.firebase.google.com
-2. Add an Android app with package name `com.family.sarisarify`
+2. Add an Android app with package name `com.sarisarify`
 3. Download `google-services.json` and place it in the project root
 4. Enable **Firestore** in the Firebase console
 5. Enable **App Check** → Play Integrity for the Android app

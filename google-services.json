@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "264633423483",
+    "project_id": "sarisarify-8b925",
+    "storage_bucket": "sarisarify-8b925.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:264633423483:android:57f2f49158d25a024c74de",
+        "android_client_info": {
+          "package_name": "com.sarisarify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiBIERJkLVMol99XAo3kFucX_8hihrP_o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
