@@ -35,9 +35,8 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				// Cache the app shell and all static assets
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-				// Runtime caching for Firestore handled by Firebase SDK offline persistence
+				navigateFallback: 'index.html',
 				runtimeCaching: []
 			}
 		})

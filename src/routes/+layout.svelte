@@ -3,6 +3,11 @@
 	import { authState } from '$lib/firebase/auth.svelte';
 	import { signInWithEmailAndPassword } from 'firebase/auth';
 	import { auth } from '$lib/firebase';
+	import { registerSW } from 'virtual:pwa-register';
+
+	onMount(() => {
+		registerSW({ immediate: true });
+	});
 
 	let { children } = $props();
 
