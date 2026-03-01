@@ -3,11 +3,12 @@
 	import { authState } from '$lib/firebase/auth.svelte';
 	import { signInWithEmailAndPassword } from 'firebase/auth';
 	import { auth } from '$lib/firebase';
-	import { registerSW } from 'virtual:pwa-register';
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		registerSW({ immediate: true });
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('/sw.js');
+		}
 	});
 
 	let { children } = $props();
@@ -29,6 +30,10 @@
 		}
 	}
 </script>
+
+<svelte:head>
+	<link rel="manifest" href="/manifest.webmanifest" />
+</svelte:head>
 
 {#if !authState.ready}
 	<!-- Splash: waiting for Firebase to restore session -->
