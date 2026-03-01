@@ -1,9 +1,14 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only authenticated users can read or write any document
+
+    // All collections: allow read and write only when the user is signed in.
+    // This is the correct rule for a single shared-account app.
+    // No unauthenticated access, no role separation needed in v1.
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
+
   }
 }

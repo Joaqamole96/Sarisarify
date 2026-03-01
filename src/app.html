@@ -10,7 +10,9 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover" class="bg-white">
+	<!-- tap: preloads on touchstart — correct for Android Chrome. -->
+	<!-- hover was the previous value and does nothing on touch devices. -->
+	<body data-sveltekit-preload-data="tap" class="bg-white">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

@@ -1,13 +1,24 @@
-const CACHE = 'sarisarify-v1';
+// __BUILD_HASH__ is replaced with an 8-character hex hash by the swCacheBuster
+// Vite plugin at build time. In dev, the literal string is used — that's fine.
+const CACHE = 'sarisarify-__BUILD_HASH__';
 
 // Install: nothing to prefetch — activate immediately
 self.addEventListener('install', () => {
 	self.skipWaiting();
 });
 
-// Activate: claim all clients immediately
+// Activate: delete all caches that don't match the current build hash,
+// then claim all clients so the new SW takes effect without a page reload.
 self.addEventListener('activate', (event) => {
-	event.waitUntil(self.clients.claim());
+	event.waitUntil(
+		caches.keys().then((keys) =>
+			Promise.all(
+				keys
+					.filter((key) => key !== CACHE)
+					.map((key) => caches.delete(key))
+			)
+		).then(() => self.clients.claim())
+	);
 });
 
 self.addEventListener('fetch', (event) => {
@@ -25,7 +36,7 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// Navigation requests — network-first, cache on success, fall back to cache offline
+	// Navigation requests — network-first, fall back to cached shell offline
 	if (request.mode === 'navigate') {
 		event.respondWith(
 			fetch(request)
@@ -39,7 +50,7 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// Everything else (icons, manifest, fonts) — network-first, fall back to cache
+	// Everything else (icons, manifest) — network-first, fall back to cache
 	event.respondWith(
 		fetch(request)
 			.then((response) => {
