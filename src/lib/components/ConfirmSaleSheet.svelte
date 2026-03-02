@@ -9,16 +9,20 @@
 			borrowerId?: string;
 			borrowerName?: string;
 			note?: string;
-		}) => Promise<void>;
+		}) => void;
 		onCancel: () => void;
 	}
 
 	let { total, onConfirm, onCancel }: Props = $props();
 
-	let cashInput    = $state(String(total));
-	let cashParsed   = $derived(parseFloat(cashInput) || 0);
+	// Empty string = exact payment (no change, no borrow).
+	// Operator only types here when cash differs from total.
+	let cashInput = $state('');
+
+	// If left blank, treat as exact payment
+	let cashParsed   = $derived(cashInput.trim() === '' ? total : (parseFloat(cashInput) || 0));
 	let cashClamped  = $derived(Math.min(Math.max(cashParsed, 0), total));
-	let borrowAmount = $derived(total - cashClamped);
+	let borrowAmount = $derived(cashInput.trim() === '' ? 0 : Math.max(0, total - cashParsed));
 	let changeAmount = $derived(cashParsed > total ? cashParsed - total : 0);
 
 	type BorrowerMode = 'existing' | 'new' | null;
@@ -27,10 +31,10 @@
 	let newBorrowerName  = $state('');
 	let hasOutstanding   = $state(false);
 	let checkingBalance  = $state(false);
+	let savingBorrower   = $state(false);
 
 	let noteVisible = $state(false);
 	let note        = $state('');
-	let submitting  = $state(false);
 
 	$effect(() => {
 		if (borrowAmount <= 0) {
@@ -60,31 +64,33 @@
 	);
 
 	async function handleConfirm() {
-		if (!canConfirm || submitting) return;
-		submitting = true;
-		try {
-			let borrowerId: string | undefined;
-			let borrowerName: string | undefined;
+		if (!canConfirm || savingBorrower) return;
 
-			if (borrowAmount > 0) {
-				if (borrowerMode === 'new') {
+		let borrowerId: string | undefined;
+		let borrowerName: string | undefined;
+
+		if (borrowAmount > 0) {
+			if (borrowerMode === 'new') {
+				savingBorrower = true;
+				try {
 					borrowerId   = await borrowers.add({ name: newBorrowerName.trim() });
 					borrowerName = newBorrowerName.trim();
-				} else if (borrowerMode === 'existing' && selectedBorrower) {
-					borrowerId   = selectedBorrower.id;
-					borrowerName = selectedBorrower.name;
+				} finally {
+					savingBorrower = false;
 				}
+			} else if (borrowerMode === 'existing' && selectedBorrower) {
+				borrowerId   = selectedBorrower.id;
+				borrowerName = selectedBorrower.name;
 			}
-
-			await onConfirm({
-				cashCollected: cashClamped,
-				borrowerId,
-				borrowerName,
-				note: note.trim() || undefined
-			});
-		} finally {
-			submitting = false;
 		}
+
+		// confirm() is now synchronous — cart resets immediately
+		onConfirm({
+			cashCollected: cashClamped,
+			borrowerId,
+			borrowerName,
+			note: note.trim() || undefined
+		});
 	}
 
 	function formatPeso(n: number): string {
@@ -117,9 +123,10 @@
 			<span class="text-lg font-bold text-gray-900">{formatPeso(total)}</span>
 		</div>
 
-		<!-- Cash received -->
+		<!-- Cash received — optional -->
 		<label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">
 			Cash received
+			<span class="normal-case font-normal text-gray-400 ml-1">— leave blank for exact payment</span>
 		</label>
 		<div class="relative mb-3">
 			<span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-400">
@@ -130,6 +137,7 @@
 				min="0"
 				step="1"
 				inputmode="numeric"
+				placeholder={String(total)}
 				bind:value={cashInput}
 				class="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 pl-9 pr-4
 					text-xl font-semibold text-gray-900 focus:border-green-500 focus:outline-none
@@ -137,7 +145,7 @@
 			/>
 		</div>
 
-		<!-- Change display — only when cash exceeds total -->
+		<!-- Change -->
 		{#if changeAmount > 0}
 			<div class="mb-4 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
 				<span class="text-sm font-medium text-green-800">Change</span>
@@ -145,14 +153,13 @@
 			</div>
 		{/if}
 
-		<!-- Borrow amount -->
+		<!-- Borrow -->
 		{#if borrowAmount > 0}
 			<div class="mb-5 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
 				<span class="text-sm font-medium text-amber-800">Borrow (utang)</span>
 				<span class="text-base font-bold text-amber-700">{formatPeso(borrowAmount)}</span>
 			</div>
 
-			<!-- Borrower selection -->
 			<label class="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
 				Borrower
 			</label>
@@ -195,7 +202,7 @@
 								<span class="text-sm font-medium text-gray-900">{borrower.name}</span>
 								{#if selectedBorrower?.id === borrower.id}
 									<svg class="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+										<path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/>
 									</svg>
 								{/if}
 							</button>
@@ -220,7 +227,7 @@
 			{:else if hasOutstanding}
 				<div class="mb-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
 					<svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-						<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+						<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
 					</svg>
 					<p class="text-xs text-amber-700">
 						<strong>{selectedBorrower?.name}</strong> already has an outstanding balance.
@@ -255,7 +262,7 @@
 		<div class="flex gap-3">
 			<button
 				onclick={onCancel}
-				disabled={submitting}
+				disabled={savingBorrower}
 				class="flex-1 rounded-xl border border-gray-200 py-3.5 text-sm font-medium
 					text-gray-700 active:bg-gray-50 disabled:opacity-40"
 			>
@@ -263,11 +270,11 @@
 			</button>
 			<button
 				onclick={handleConfirm}
-				disabled={!canConfirm || submitting}
+				disabled={!canConfirm || savingBorrower}
 				class="flex-1 rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white
 					active:bg-green-700 disabled:opacity-40"
 			>
-				{#if submitting}
+				{#if savingBorrower}
 					Saving…
 				{:else if borrowAmount > 0}
 					Confirm · {formatPeso(borrowAmount)} utang

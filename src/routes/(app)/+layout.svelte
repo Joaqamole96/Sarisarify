@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import ToastContainer from '$lib/components/ToastContainer.svelte';
 
 	let { children } = $props();
 
@@ -14,7 +15,7 @@
 
 <div class="flex h-screen flex-col">
 	<!-- Main content area -->
-	<main class="flex-1 overflow-y-auto">
+	<main class="flex-1 overflow-hidden">
 		{@render children()}
 	</main>
 
@@ -33,4 +34,7 @@
 			</a>
 		{/each}
 	</nav>
+
+	<!-- Toast notifications — above page content, below modals (z-40) -->
+	<ToastContainer />
 </div>

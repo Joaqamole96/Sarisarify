@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { products } from '$lib/stores/products.svelte.ts';
 	import { sales, calcLineTotal } from '$lib/stores/sales.svelte.ts';
+	import { toast } from '$lib/stores/toast.svelte.ts';
 	import OpenPriceSheet from '$lib/components/OpenPriceSheet.svelte';
 	import ConfirmSaleSheet from '$lib/components/ConfirmSaleSheet.svelte';
 	import { PRODUCT_CATEGORIES } from '$lib/types';
@@ -10,14 +11,12 @@
 	let showConfirm     = $state(false);
 	let activeCategory  = $state<ProductCategory | 'All'>('All');
 
-	// Filtered product list — all or by category
 	let visibleProducts = $derived(
 		activeCategory === 'All'
 			? products.list
 			: products.list.filter((p) => p.category === activeCategory)
 	);
 
-	// Only show category tabs that actually have products
 	let populatedCategories = $derived(
 		PRODUCT_CATEGORIES.filter((cat) => products.list.some((p) => p.category === cat))
 	);
@@ -36,20 +35,28 @@
 		openPriceTarget = null;
 	}
 
-	async function handleConfirmSale(params: {
+	function handleConfirmSale(params: {
 		cashCollected: number;
 		borrowerId?: string;
 		borrowerName?: string;
 		note?: string;
 	}) {
-		await sales.confirm(params);
+		const hasBorrow = params.borrowerId !== undefined;
+		sales.confirm(params);
 		showConfirm = false;
+		toast.show(hasBorrow ? 'Sale confirmed — utang recorded' : 'Sale confirmed');
 	}
 
 	function cartQty(productId: string): number {
 		return sales.cart
 			.filter((item) => item.product.id === productId)
 			.reduce((sum, item) => sum + item.quantity, 0);
+	}
+
+	// Returns the unitPrice of the first cart line for this product.
+	// Used for the quick decrement button on non-open products.
+	function cartUnitPrice(productId: string): number {
+		return sales.cart.find((item) => item.product.id === productId)?.unitPrice ?? 0;
 	}
 
 	function priceDisplay(p: Product): string {
@@ -131,11 +138,12 @@
 		</div>
 	{/if}
 
-	<!-- Category tab strip — only rendered when there are products with categories -->
+	<!-- Category tabs -->
 	{#if populatedCategories.length > 0}
-		<div class="flex gap-2 overflow-x-auto border-b border-gray-100 px-4 py-2
-			scrollbar-none" style="scrollbar-width: none; -ms-overflow-style: none;">
-			<!-- All tab -->
+		<div
+			class="flex gap-2 overflow-x-auto border-b border-gray-100 px-4 py-2"
+			style="scrollbar-width: none; -ms-overflow-style: none;"
+		>
 			<button
 				onclick={() => activeCategory = 'All'}
 				class="flex-shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors
@@ -172,37 +180,49 @@
 				<p class="text-sm text-gray-400">No products in this category.</p>
 			</div>
 		{:else}
-			<div class="grid grid-cols-3 gap-2 p-3">
+			<div class="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 				{#each visibleProducts as product (product.id)}
 					{@const qty = cartQty(product.id)}
-					<button
-						onclick={() => handleProductTap(product)}
-						class="relative flex flex-col items-center gap-1.5 rounded-2xl
-							border-2 bg-white px-2 py-3 text-center active:bg-gray-50 transition-colors
-							{qty > 0 ? 'border-green-400 bg-green-50' : 'border-gray-100'}"
-					>
-						<!-- Quantity badge -->
-						{#if qty > 0}
-							<span class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
-								rounded-full bg-green-600 text-xs font-bold text-white shadow">
-								{qty}
-							</span>
+					<div class="relative">
+						<!-- Main tap target -->
+						<button
+							onclick={() => handleProductTap(product)}
+							class="flex w-full flex-col items-center gap-1.5 rounded-2xl
+								border-2 bg-white px-2 py-3 text-center active:bg-gray-50 transition-colors
+								{qty > 0 ? 'border-green-400 bg-green-50' : 'border-gray-100'}"
+						>
+							<!-- Quantity badge -->
+							{#if qty > 0}
+								<span class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
+									rounded-full bg-green-600 text-xs font-bold text-white shadow">
+									{qty}
+								</span>
+							{/if}
+
+							<span class="text-3xl leading-none">{product.iconEmoji}</span>
+							<p class="w-full truncate text-xs font-semibold leading-tight text-gray-900">
+								{product.name}
+							</p>
+							<p class="text-xs font-medium leading-tight
+								{product.pricingMode === 'open' ? 'text-gray-400 italic' : 'text-green-700'}">
+								{priceDisplay(product)}
+							</p>
+						</button>
+
+						<!-- Quick decrement — only visible when item is in cart and not open-priced -->
+						{#if qty > 0 && product.pricingMode !== 'open'}
+							<button
+								onclick={(e) => {
+									e.stopPropagation();
+									sales.removeOne(product.id, cartUnitPrice(product.id));
+								}}
+								class="absolute -bottom-1.5 -left-1.5 flex h-5 w-5 items-center justify-center
+									rounded-full bg-gray-400 text-xs font-bold text-white shadow
+									active:bg-gray-600"
+								aria-label="Remove one {product.name}"
+							>−</button>
 						{/if}
-
-						<!-- Icon -->
-						<span class="text-3xl leading-none">{product.iconEmoji}</span>
-
-						<!-- Name -->
-						<p class="w-full truncate text-xs font-semibold leading-tight text-gray-900">
-							{product.name}
-						</p>
-
-						<!-- Price -->
-						<p class="text-xs font-medium leading-tight
-							{product.pricingMode === 'open' ? 'text-gray-400 italic' : 'text-green-700'}">
-							{priceDisplay(product)}
-						</p>
-					</button>
+					</div>
 				{/each}
 			</div>
 		{/if}

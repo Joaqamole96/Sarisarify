@@ -31,14 +31,11 @@ export function calcLineTotal(item: CartItem): number {
 	if (product.pricingMode === 'per_unit') {
 		base = Math.ceil(unitPrice * quantity);
 	} else {
-		// 'fixed' or 'open' — both are whole-peso amounts multiplied by quantity
 		base = unitPrice * quantity;
 	}
 
-	// Deposit is per-line (not per-unit): one bottle returned = one deposit
-	const deposit  = depositApplied  ? (product.depositAmount  ?? 0)            : 0;
-	// Discount is per-unit: if discountAmount is ₱2 and qty is 3, total discount = ₱6
-	const discount = discountApplied ? (product.discountAmount ?? 0) * quantity  : 0;
+	const deposit  = depositApplied  ? (product.depositAmount  ?? 0)           : 0;
+	const discount = discountApplied ? (product.discountAmount ?? 0) * quantity : 0;
 
 	return base + deposit - discount;
 }
@@ -57,8 +54,6 @@ const BORROWS_COL = 'borrows';
 function createSalesStore() {
 	let cart = $state<CartItem[]>([]);
 
-	// Identify a cart line by product id + unitPrice.
-	// open-priced products with different prices are separate lines.
 	function findIndex(productId: string, unitPrice: number): number {
 		return cart.findIndex(
 			(item) => item.product.id === productId && item.unitPrice === unitPrice
@@ -76,8 +71,6 @@ function createSalesStore() {
 			return cart.reduce((sum, item) => sum + item.quantity, 0);
 		},
 
-		// Add or increment a product line.
-		// For open-priced products, each distinct unitPrice is a separate line.
 		addProduct(product: Product, unitPrice: number): void {
 			const idx = findIndex(product.id, unitPrice);
 			if (idx >= 0) {
@@ -90,7 +83,6 @@ function createSalesStore() {
 			}
 		},
 
-		// Decrement by one; removes line when quantity reaches 0.
 		removeOne(productId: string, unitPrice: number): void {
 			const idx = findIndex(productId, unitPrice);
 			if (idx < 0) return;
@@ -113,15 +105,16 @@ function createSalesStore() {
 			cart[idx] = { ...cart[idx], discountApplied: !cart[idx].discountApplied };
 		},
 
-		// Persist the sale to Firestore and reset the session.
-		// If borrowAmount > 0 and a borrower is provided, a borrow record is written
-		// atomically in the same batch as the sale.
-		async confirm(params: {
+		// Confirm the sale.
+		// OFFLINE-FIRST: cart is reset immediately before the Firestore write.
+		// The write is fired without awaiting — Firestore's persistent cache queues it
+		// and syncs when connectivity returns. The UI never blocks on network.
+		confirm(params: {
 			cashCollected: number;
 			borrowerId?: string;
 			borrowerName?: string;
 			note?: string;
-		}): Promise<void> {
+		}): void {
 			const total        = cart.reduce((sum, item) => sum + calcLineTotal(item), 0);
 			const borrowAmount = total - params.cashCollected;
 
@@ -150,8 +143,11 @@ function createSalesStore() {
 			if (params.borrowerName) saleData.borrowerName = params.borrowerName;
 			if (params.note)         saleData.note         = params.note;
 
+			// Reset cart immediately — do not wait for Firestore
+			cart = [];
+
+			// Fire-and-forget write — Firestore handles offline queuing
 			if (borrowAmount > 0 && params.borrowerId) {
-				// Atomic write: sale + borrow record in one batch
 				const batch     = writeBatch(db);
 				const saleRef   = doc(collection(db, SALES_COL));
 				const borrowRef = doc(collection(db, BORROWS_COL));
@@ -168,13 +164,10 @@ function createSalesStore() {
 					...(params.note ? { note: params.note } : {})
 				});
 
-				await batch.commit();
+				batch.commit();
 			} else {
-				await addDoc(collection(db, SALES_COL), saleData);
+				addDoc(collection(db, SALES_COL), saleData);
 			}
-
-			// Immediate reset — no summary screen, ready for next customer
-			cart = [];
 		},
 
 		reset(): void {
@@ -183,5 +176,4 @@ function createSalesStore() {
 	};
 }
 
-// Singleton — one session for the entire app lifetime.
 export const sales = createSalesStore();
