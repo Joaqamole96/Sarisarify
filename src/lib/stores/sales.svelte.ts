@@ -28,9 +28,21 @@ export function calcLineTotal(item: CartItem): number {
 	const { product, quantity, unitPrice, depositApplied, discountApplied } = item;
 
 	let base: number;
-	if (product.pricingMode === 'per_unit') {
+	if (product.pricingMode === 'per_sale') {
+		// per_sale: always ceiling rounding for individual items
 		base = Math.ceil(unitPrice * quantity);
+	} else if (product.pricingMode === 'per_bundle' && product.bundleQuantity && product.bundlePrice) {
+		// per_bundle: apply bundle pricing when quantity reaches bundle size
+		const bundleQty = product.bundleQuantity;
+		const bundlePrice = product.bundlePrice;
+		const bundles = Math.floor(quantity / bundleQty);
+		const remainder = quantity % bundleQty;
+		base = bundles * bundlePrice + Math.ceil(remainder * unitPrice);
+	} else if (product.pricingMode === 'open') {
+		// open: price is entered by operator, no rounding
+		base = unitPrice * quantity;
 	} else {
+		// fallback (should not happen)
 		base = unitPrice * quantity;
 	}
 

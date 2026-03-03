@@ -20,9 +20,9 @@
 	let cashInput = $state('');
 
 	// If left blank, treat as exact payment
-	let cashParsed   = $derived(cashInput.trim() === '' ? total : (parseFloat(cashInput) || 0));
+	let cashParsed   = $derived(String(cashInput).trim() === '' ? total : (parseFloat(cashInput) || 0));
 	let cashClamped  = $derived(Math.min(Math.max(cashParsed, 0), total));
-	let borrowAmount = $derived(cashInput.trim() === '' ? 0 : Math.max(0, total - cashParsed));
+	let borrowAmount = $derived(String(cashInput).trim() === '' ? 0 : Math.max(0, total - cashParsed));
 	let changeAmount = $derived(cashParsed > total ? cashParsed - total : 0);
 
 	type BorrowerMode = 'existing' | 'new' | null;

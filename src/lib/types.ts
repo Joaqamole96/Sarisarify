@@ -15,21 +15,25 @@ export const PRODUCT_CATEGORIES = [
 
 export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
 
-export type PricingMode = 'fixed' | 'per_unit' | 'open';
-// fixed:    lineTotal = price × qty
-// per_unit: lineTotal = ceil(price × qty)  — for fractional unit prices (e.g. candy ₱1.25/pc)
-// open:     price is entered by operator at sale time (e.g. ice bags sold by peso amount)
-//           trackStock is locked to false for open-priced products
+export type PricingMode = 'per_sale' | 'per_bundle' | 'open';
+// per_sale:   lineTotal = ceil(price × qty) — for individual items, always ceiling rounding
+// per_bundle: price per unit and price per bundle (when quantity reaches bundle size)
+// open:       price is entered by operator at sale time (e.g. ice bags sold by peso amount)
+//             trackStock is locked to false for open-priced products
 
 export interface Product {
 	id: string;                  // Firestore document ID — added client-side after read
 	name: string;
 	price: number;               // unit price in Philippine Peso, always ≥ 0
-	                             // ignored when pricingMode === 'open'
+	                             // for per_bundle: price per unit; ignored when pricingMode === 'open'
 	pricingMode: PricingMode;
 	unitLabel?: string;          // display only — "pc", "sachet", "stick"
 	iconEmoji: string;
 	category: ProductCategory;
+
+	// Bundle pricing (only for per_bundle)
+	bundleQuantity?: number;     // number of units in a bundle (e.g., 12 for a dozen)
+	bundlePrice?: number;        // price for the entire bundle (e.g., 120 for a dozen)
 
 	// Inventory (Sprint 5)
 	trackStock: boolean;         // false = excluded from stock tracking and low-stock warnings

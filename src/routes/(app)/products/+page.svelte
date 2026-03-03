@@ -34,9 +34,21 @@
 
 	function priceDisplay(p: Product): string {
 		if (p.pricingMode === 'open') return 'Open price';
+		
 		const amount = p.price % 1 === 0 ? `₱${p.price}` : `₱${p.price.toFixed(2)}`;
-		if (p.pricingMode === 'per_unit') return `${amount}/${p.unitLabel || 'pc'}`;
-		return p.unitLabel ? `${amount} / ${p.unitLabel}` : amount;
+		
+		if (p.pricingMode === 'per_sale') {
+			return p.unitLabel ? `${amount}/${p.unitLabel}` : `${amount}/pc`;
+		}
+		
+		if (p.pricingMode === 'per_bundle' && p.bundleQuantity && p.bundlePrice) {
+			const bundleAmount = p.bundlePrice % 1 === 0 ? `₱${p.bundlePrice}` : `₱${p.bundlePrice.toFixed(2)}`;
+			const unitDisplay = p.unitLabel ? `${amount}/${p.unitLabel}` : `${amount}/pc`;
+			return `${unitDisplay} · ${p.bundleQuantity} for ${bundleAmount}`;
+		}
+		
+		// Fallback for per_bundle without bundle fields or other cases
+		return p.unitLabel ? `${amount}/${p.unitLabel}` : `${amount}/pc`;
 	}
 
 	function badges(p: Product): string[] {
@@ -44,6 +56,10 @@
 		if (p.depositAmount)  b.push(`+₱${p.depositAmount} deposit`);
 		if (p.discountAmount) b.push(`-₱${p.discountAmount} disc.`);
 		if (!p.trackStock)    b.push('stock untracked');
+		// Optionally add bundle badge if it's a bundle product
+		if (p.pricingMode === 'per_bundle' && p.bundleQuantity && p.bundlePrice) {
+			b.push(`bundle`);
+		}
 		return b;
 	}
 </script>

@@ -59,15 +59,26 @@
 		return sales.cart.find((item) => item.product.id === productId)?.unitPrice ?? 0;
 	}
 
-	function priceDisplay(p: Product): string {
-		if (p.pricingMode === 'open') return 'Enter price';
-		const amount = p.price % 1 === 0 ? `₱${p.price}` : `₱${p.price.toFixed(2)}`;
-		if (p.pricingMode === 'per_unit') return `${amount}/${p.unitLabel || 'pc'}`;
-		return p.unitLabel ? `${amount} / ${p.unitLabel}` : amount;
-	}
-
 	function formatPeso(n: number): string {
 		return `₱${n % 1 === 0 ? n : n.toFixed(2)}`;
+	}
+
+	function priceDisplay(p: Product): string {
+		if (p.pricingMode === 'open') return 'Enter price';
+		
+		const amount = p.price % 1 === 0 ? `₱${p.price}` : `₱${p.price.toFixed(2)}`;
+		
+		if (p.pricingMode === 'per_sale') {
+			return p.unitLabel ? `${amount}/${p.unitLabel}` : `${amount}/pc`;
+		}
+		
+		if (p.pricingMode === 'per_bundle' && p.bundleQuantity && p.bundlePrice) {
+			const bundleAmount = p.bundlePrice % 1 === 0 ? `₱${p.bundlePrice}` : `₱${p.bundlePrice.toFixed(2)}`;
+			return `${amount}/pc · ${p.bundleQuantity} for ${bundleAmount}`;
+		}
+		
+		// Fallback for per_bundle without bundle fields or other cases
+		return p.unitLabel ? `${amount}/${p.unitLabel}` : `${amount}/pc`;
 	}
 </script>
 
@@ -193,7 +204,7 @@
 						>
 							<!-- Quantity badge -->
 							{#if qty > 0}
-								<span class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
+								<span class="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
 									rounded-full bg-green-600 text-xs font-bold text-white shadow">
 									{qty}
 								</span>
@@ -216,9 +227,8 @@
 									e.stopPropagation();
 									sales.removeOne(product.id, cartUnitPrice(product.id));
 								}}
-								class="absolute -bottom-1.5 -left-1.5 flex h-5 w-5 items-center justify-center
-									rounded-full bg-gray-400 text-xs font-bold text-white shadow
-									active:bg-gray-600"
+								class="absolute top-0 right-0 h-full w-6 flex items-center justify-center
+									rounded-r-2xl bg-gray-400 text-white active:bg-gray-600"
 								aria-label="Remove one {product.name}"
 							>−</button>
 						{/if}

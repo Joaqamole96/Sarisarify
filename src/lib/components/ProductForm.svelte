@@ -13,27 +13,45 @@
 
 	let name           = $state(product?.name            ?? '');
 	let price          = $state(product?.price            ?? '');
-	let pricingMode    = $state<PricingMode>(product?.pricingMode   ?? 'fixed');
+	let pricingMode    = $state<PricingMode>(product?.pricingMode   ?? 'per_sale');
 	let unitLabel      = $state(product?.unitLabel        ?? '');
 	let iconEmoji      = $state(product?.iconEmoji        ?? DEFAULT_ICON);
 	let category       = $state<ProductCategory>(product?.category  ?? PRODUCT_CATEGORIES[0]);
 	let trackStock     = $state(product?.trackStock       ?? true);
 	let depositAmount  = $state(product?.depositAmount    ?? '');
 	let discountAmount = $state(product?.discountAmount   ?? '');
+	let bundleQuantity = $state(product?.bundleQuantity   ?? '');
+	let bundlePrice    = $state(product?.bundlePrice      ?? '');
 
 	let saving = $state(false);
 	let errors = $state<Record<string, string>>({});
 
 	// When pricing mode is set to open, price is irrelevant and trackStock must be false
 	$effect(() => {
-		if (pricingMode === 'open') trackStock = false;
+		if (pricingMode === 'open') {
+			trackStock = false;
+		}
 	});
 
 	function validate(): boolean {
 		errors = {};
 		if (!name.trim()) errors.name = 'Name is required.';
-		if (pricingMode !== 'open' && (price === '' || Number(price) < 0))
-			errors.price = 'Price must be 0 or more.';
+		
+		if (pricingMode === 'per_sale' || pricingMode === 'per_bundle') {
+			if (price === '' || Number(price) < 0)
+				errors.price = 'Price must be 0 or more.';
+		}
+		
+		if (pricingMode === 'per_bundle') {
+			if (bundleQuantity === '' || Number(bundleQuantity) < 1)
+				errors.bundleQuantity = 'Bundle quantity must be at least 1.';
+			if (bundlePrice === '' || Number(bundlePrice) < 0)
+				errors.bundlePrice = 'Bundle price must be 0 or more.';
+			if (bundlePrice !== '' && price !== '' && Number(bundlePrice) <= Number(price)) {
+				errors.bundlePrice = 'Bundle price should be greater than unit price for bulk discount.';
+			}
+		}
+		
 		if (depositAmount !== '' && Number(depositAmount) < 0)
 			errors.depositAmount = 'Deposit must be 0 or more.';
 		if (discountAmount !== '' && Number(discountAmount) < 0)
@@ -55,6 +73,8 @@
 				...(unitLabel.trim()       && { unitLabel:      unitLabel.trim() }),
 				...(depositAmount  !== ''  && pricingMode !== 'open' && { depositAmount:  Number(depositAmount) }),
 				...(discountAmount !== ''  && pricingMode !== 'open' && { discountAmount: Number(discountAmount) }),
+				...(pricingMode === 'per_bundle' && bundleQuantity !== '' && { bundleQuantity: Number(bundleQuantity) }),
+				...(pricingMode === 'per_bundle' && bundlePrice !== '' && { bundlePrice: Number(bundlePrice) }),
 			};
 			await onSave(data);
 		} finally {
@@ -145,38 +165,60 @@
 		<!-- Pricing mode -->
 		<div>
 			<p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Pricing</p>
-			<div class="flex rounded-xl overflow-hidden border border-gray-200">
+			
+			<!-- Open pricing toggle -->
+			<div class="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
+				<div>
+					<p class="text-sm font-medium text-gray-800">Open pricing</p>
+					<p class="text-xs text-gray-400">Price is entered during the sale. Use for ice bags and similar.</p>
+				</div>
 				<button
-					onclick={() => pricingMode = 'fixed'}
-					class="flex-1 py-2.5 text-sm font-medium transition
-						{pricingMode === 'fixed' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
+					role="switch"
+					aria-checked={pricingMode === 'open'}
+					onclick={() => {
+						if (pricingMode === 'open') {
+							// Switch back to per_sale by default
+							pricingMode = 'per_sale';
+						} else {
+							pricingMode = 'open';
+						}
+					}}
+					class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors
+						{pricingMode === 'open' ? 'bg-green-500' : 'bg-gray-300'}"
 				>
-					Per sale
-				</button>
-				<button
-					onclick={() => pricingMode = 'per_unit'}
-					class="flex-1 py-2.5 text-sm font-medium transition
-						{pricingMode === 'per_unit' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
-				>
-					Per unit
-				</button>
-				<button
-					onclick={() => pricingMode = 'open'}
-					class="flex-1 py-2.5 text-sm font-medium transition
-						{pricingMode === 'open' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
-				>
-					Open
+					<span class="sr-only">Open pricing</span>
+					<span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform mt-0.5
+						{pricingMode === 'open' ? 'translate-x-5' : 'translate-x-0.5'}">
+					</span>
 				</button>
 			</div>
-			<p class="mt-1.5 text-xs text-gray-400">
-				{#if pricingMode === 'fixed'}
-					Total = price × quantity. Use for most products.
-				{:else if pricingMode === 'per_unit'}
-					Total = ⌈unit price × quantity⌉. Use for candies sold by piece.
-				{:else}
-					Price is entered during the sale. Use for ice bags and similar.
-				{/if}
-			</p>
+
+			<!-- Tabs for per sale and per bundle (hidden when open pricing is on) -->
+			{#if pricingMode !== 'open'}
+				<div class="flex rounded-xl overflow-hidden border border-gray-200">
+					<button
+						onclick={() => pricingMode = 'per_sale'}
+						class="flex-1 py-2.5 text-sm font-medium transition
+							{pricingMode === 'per_sale' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
+					>
+						Per sale
+					</button>
+					<button
+						onclick={() => pricingMode = 'per_bundle'}
+						class="flex-1 py-2.5 text-sm font-medium transition
+							{pricingMode === 'per_bundle' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
+					>
+						Per bundle
+					</button>
+				</div>
+				<p class="mt-1.5 text-xs text-gray-400">
+					{#if pricingMode === 'per_sale'}
+						Total = ⌈unit price × quantity⌉. Use for most products (ceiling rounding always applied).
+					{:else if pricingMode === 'per_bundle'}
+						Bundle pricing: buy {bundleQuantity || 'N'} units for ₱{bundlePrice || '0'}. Use for bulk discounts.
+					{/if}
+				</p>
+			{/if}
 		</div>
 
 		<!-- Price + unit label — hidden for open pricing -->
@@ -184,7 +226,7 @@
 			<div class="flex gap-3">
 				<div class="flex-1">
 					<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
-						{pricingMode === 'per_unit' ? 'Unit price (₱)' : 'Price (₱)'}
+						Unit price (₱)
 					</label>
 					<input
 						type="number"
@@ -211,6 +253,44 @@
 					/>
 				</div>
 			</div>
+
+			<!-- Bundle fields — only for per_bundle pricing -->
+			{#if pricingMode === 'per_bundle'}
+				<div class="flex gap-3">
+					<div class="flex-1">
+						<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+							Bundle quantity
+						</label>
+						<input
+							type="number"
+							inputmode="numeric"
+							min="1"
+							step="1"
+							bind:value={bundleQuantity}
+							placeholder="e.g. 12"
+							class="w-full rounded-xl border px-4 py-3 text-base outline-none
+								{errors.bundleQuantity ? 'border-red-400' : 'border-gray-200 focus:border-green-500'}"
+						/>
+						{#if errors.bundleQuantity}<p class="mt-1 text-xs text-red-500">{errors.bundleQuantity}</p>{/if}
+					</div>
+					<div class="flex-1">
+						<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+							Bundle price (₱)
+						</label>
+						<input
+							type="number"
+							inputmode="decimal"
+							min="0"
+							step="0.01"
+							bind:value={bundlePrice}
+							placeholder="0"
+							class="w-full rounded-xl border px-4 py-3 text-base outline-none
+								{errors.bundlePrice ? 'border-red-400' : 'border-gray-200 focus:border-green-500'}"
+						/>
+						{#if errors.bundlePrice}<p class="mt-1 text-xs text-red-500">{errors.bundlePrice}</p>{/if}
+					</div>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Track stock — locked off for open pricing -->

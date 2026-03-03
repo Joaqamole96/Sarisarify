@@ -30,7 +30,7 @@ function createProductsStore() {
 			const doc_data: Record<string, unknown> = {
 				name:        data.name,
 				price:       data.price,
-				pricingMode: data.pricingMode ?? 'fixed',
+				pricingMode: data.pricingMode ?? 'per_sale',
 				iconEmoji:   data.iconEmoji   ?? DEFAULT_ICON,
 				category:    data.category,
 				trackStock:  data.trackStock  ?? true,
@@ -40,6 +40,8 @@ function createProductsStore() {
 			if (data.unitLabel)      doc_data.unitLabel      = data.unitLabel;
 			if (data.depositAmount)  doc_data.depositAmount  = data.depositAmount;
 			if (data.discountAmount) doc_data.discountAmount = data.discountAmount;
+			if (data.bundleQuantity !== undefined) doc_data.bundleQuantity = data.bundleQuantity;
+			if (data.bundlePrice !== undefined) doc_data.bundlePrice = data.bundlePrice;
 			await addDoc(collection(db, COLLECTION), doc_data);
 		},
 
