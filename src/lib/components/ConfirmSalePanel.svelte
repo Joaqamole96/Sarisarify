@@ -99,20 +99,20 @@
 	}
 </script>
 
-<div class="border-t border-gray-100 bg-white px-4 py-3">
+<div class="border-t border-emerald-100 bg-emerald-50/80 px-3 py-2">
 	<!-- Total row -->
-	<div class="mb-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-		<span class="text-sm text-gray-500">Total</span>
-		<span class="text-lg font-bold text-gray-900">{formatPeso(total)}</span>
+	<div class="mb-2 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2">
+		<span class="text-xs font-medium uppercase tracking-wide text-gray-500">Total</span>
+		<span class="text-base font-bold text-gray-900">{formatPeso(total)}</span>
 	</div>
 
 	<!-- Cash received — optional -->
 	<label for="sale-cash-received" class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">
 		Cash received
-		<span class="normal-case font-normal text-gray-400 ml-1">— leave blank for exact payment</span>
+		<span class="normal-case font-normal text-gray-400 ml-1">— blank = exact</span>
 	</label>
-	<div class="relative mb-3">
-		<span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-400">₱</span>
+	<div class="relative mb-2">
+		<span class="absolute left-3 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₱</span>
 		<input
 			id="sale-cash-received"
 			type="number"
@@ -121,30 +121,30 @@
 			inputmode="numeric"
 			placeholder={String(total)}
 			bind:value={cashInput}
-			class="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 pl-9 pr-4
-				text-xl font-semibold text-gray-900 focus:border-green-500 focus:outline-none
+			class="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3
+				text-lg font-semibold text-gray-900 focus:border-green-500 focus:outline-none
 				focus:ring-2 focus:ring-green-100"
 		/>
 	</div>
 
 	{#if changeAmount > 0}
-		<div class="mb-3 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+		<div class="mb-2 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2">
 			<span class="text-sm font-medium text-green-800">Change</span>
-			<span class="text-base font-bold text-green-700">{formatPeso(changeAmount)}</span>
+			<span class="text-sm font-bold text-green-700">{formatPeso(changeAmount)}</span>
 		</div>
 	{/if}
 
 	{#if borrowAmount > 0}
-		<div class="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+		<div class="mb-3 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
 			<span class="text-sm font-medium text-amber-800">Borrow (utang)</span>
-			<span class="text-base font-bold text-amber-700">{formatPeso(borrowAmount)}</span>
+			<span class="text-sm font-bold text-amber-700">{formatPeso(borrowAmount)}</span>
 		</div>
 
 		<p class="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
 			Borrower
 		</p>
 
-		<div class="mb-3 flex gap-2">
+		<div class="mb-2 flex gap-2">
 			<button
 				onclick={() => { borrowerMode = 'existing'; selectedBorrower = null; hasOutstanding = false; }}
 				class="flex-1 rounded-xl border py-2.5 text-sm font-medium transition-colors
@@ -171,12 +171,12 @@
 					No borrowers yet. Use "Add New" to create one.
 				</p>
 			{:else}
-				<div class="mb-3 max-h-40 overflow-y-auto rounded-xl border border-gray-100">
+				<div class="mb-2 max-h-32 overflow-y-auto rounded-xl border border-gray-100">
 					{#each borrowers.list as borrower (borrower.id)}
 						<button
 							onclick={() => selectBorrower(borrower)}
 							class="flex w-full items-center justify-between border-b border-gray-100
-								px-4 py-3 text-left last:border-b-0 active:bg-gray-50
+								px-3 py-2.5 text-left last:border-b-0 active:bg-gray-50
 								{selectedBorrower?.id === borrower.id ? 'bg-green-50' : ''}"
 						>
 							<span class="text-sm font-medium text-gray-900">{borrower.name}</span>
@@ -196,7 +196,7 @@
 				type="text"
 				placeholder="Borrower's name"
 				bind:value={newBorrowerName}
-				class="mb-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3
+				class="mb-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5
 					text-sm text-gray-900 focus:border-green-500 focus:outline-none
 					focus:ring-2 focus:ring-green-100"
 			/>
@@ -220,7 +220,7 @@
 	{#if !noteVisible}
 		<button
 			onclick={() => noteVisible = true}
-			class="mb-3 text-sm text-gray-400 underline-offset-2 active:text-gray-600"
+			class="mb-2 text-sm text-gray-400 underline-offset-2 active:text-gray-600"
 		>
 			+ Add note
 		</button>
@@ -233,8 +233,8 @@
 			bind:value={note}
 			rows="2"
 			placeholder="e.g. Bought for fiesta, half-pack cigarettes…"
-			class="mb-3 w-full resize-none rounded-xl border border-gray-200 bg-gray-50
-				px-4 py-3 text-sm text-gray-900 focus:border-green-500 focus:outline-none
+			class="mb-2 w-full resize-none rounded-xl border border-gray-200 bg-gray-50
+				px-3 py-2.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none
 				focus:ring-2 focus:ring-green-100"
 		></textarea>
 	{/if}
@@ -242,7 +242,7 @@
 	<button
 		onclick={handleConfirm}
 		disabled={!canConfirm || savingBorrower}
-		class="flex w-full items-center justify-center rounded-xl bg-green-600 py-4 text-sm font-semibold text-white
+		class="flex w-full items-center justify-center rounded-xl bg-green-600 py-3 text-sm font-semibold text-white
 			active:bg-green-700 disabled:opacity-40"
 	>
 		{#if savingBorrower}

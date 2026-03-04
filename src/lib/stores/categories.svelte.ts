@@ -13,6 +13,7 @@ import {
 	updateDoc
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
+import type { ProductIconKey } from '$lib/productIcons';
 
 const CATEGORIES_COL = 'categories';
 const PRODUCTS_COL = 'products';
@@ -20,6 +21,7 @@ const PRODUCTS_COL = 'products';
 export interface Category {
 	id: string;
 	name: string;
+	iconKeys?: ProductIconKey[];
 	createdAt?: unknown;
 }
 
@@ -116,6 +118,10 @@ function createCategoriesStore() {
 			const name = nameRaw.trim();
 			if (!name) return;
 			await updateDoc(doc(db, CATEGORIES_COL, id), { name });
+		},
+
+		async setIconKeys(id: string, iconKeys: ProductIconKey[]): Promise<void> {
+			await updateDoc(doc(db, CATEGORIES_COL, id), { iconKeys });
 		}
 	};
 }

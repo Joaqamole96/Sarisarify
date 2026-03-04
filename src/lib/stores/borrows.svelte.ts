@@ -2,8 +2,8 @@ import {
 	collection,
 	onSnapshot,
 	query,
-	where,
 	orderBy,
+	limit,
 	writeBatch,
 	doc,
 	serverTimestamp
@@ -21,25 +21,35 @@ export interface BorrowerBalanceRow {
 }
 
 function createBorrowsStore() {
-	let outstandingBorrows = $state<BorrowRecord[]>([]);
+	let allBorrows = $state<BorrowRecord[]>([]);
 
-	// Outstanding borrows listener (unpaid + partial). Aggregation is done client-side.
-	const q = query(
-		collection(db, BORROWS_COL),
-		where('status', 'in', ['unpaid', 'partial']),
-		orderBy('createdAt', 'desc')
-	);
+	// Resilient listener: avoid composite index + avoid missing-field issues.
+	// We subscribe to recent borrows and compute "outstanding" client-side.
+	const q = query(collection(db, BORROWS_COL), orderBy('createdAt', 'desc'), limit(500));
 	onSnapshot(q, (snap) => {
-		outstandingBorrows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as BorrowRecord);
+		allBorrows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as BorrowRecord);
 	});
 
+	function outstandingFromAll(): BorrowRecord[] {
+		return allBorrows.filter((b) => {
+			const remaining = Number(b.remainingAmount ?? 0);
+			const status = (b.status ?? 'unpaid') as BorrowRecord['status'];
+			// Treat any positive remaining as outstanding unless explicitly paid.
+			return remaining > 0 && status !== 'paid';
+		});
+	}
+
 	return {
-		get outstandingBorrows() { return outstandingBorrows; },
+		get allBorrows() { return allBorrows; },
+
+		get outstandingBorrows() {
+			return outstandingFromAll();
+		},
 
 		// Aggregated outstanding totals per borrower (derived from outstandingBorrows).
 		get borrowerBalances(): BorrowerBalanceRow[] {
 			const map = new Map<string, BorrowerBalanceRow>();
-			for (const b of outstandingBorrows) {
+			for (const b of outstandingFromAll()) {
 				const existing = map.get(b.borrowerId);
 				if (existing) {
 					existing.outstanding += b.remainingAmount ?? 0;
@@ -58,13 +68,20 @@ function createBorrowsStore() {
 			borrowerId: string,
 			onUpdate: (rows: BorrowRecord[]) => void
 		): () => void {
-			const q = query(
-				collection(db, BORROWS_COL),
-				where('borrowerId', '==', borrowerId),
-				orderBy('createdAt', 'desc')
-			);
+			// Subscribe to recent borrows and filter/sort client-side (no composite index required).
+			const q = query(collection(db, BORROWS_COL), orderBy('createdAt', 'desc'), limit(500));
 			return onSnapshot(q, (snap) => {
-				onUpdate(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as BorrowRecord));
+				const rows = snap.docs
+					.map((d) => ({ id: d.id, ...d.data() }) as BorrowRecord)
+					.filter((b) => b.borrowerId === borrowerId)
+					.sort((a, b) => {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const ad = (a.createdAt as any)?.toMillis ? (a.createdAt as any).toMillis() : 0;
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const bd = (b.createdAt as any)?.toMillis ? (b.createdAt as any).toMillis() : 0;
+						return bd - ad;
+					});
+				onUpdate(rows);
 			});
 		},
 

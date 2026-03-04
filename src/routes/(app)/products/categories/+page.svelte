@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { categories } from '$lib/stores/categories.svelte.ts';
 	import { toast } from '$lib/stores/toast.svelte.ts';
+	import ProductIcon from '$lib/components/ProductIcon.svelte';
+	import { PRODUCT_ICON_OPTIONS, type ProductIconKey } from '$lib/productIcons';
 
 	let newName = $state('');
 	let renamingId = $state<string | null>(null);
 	let renameDraft = $state('');
+	let iconTargetId = $state<string | null>(null);
+	let iconDraft = $state<ProductIconKey[]>([]);
 
 	async function addCategory() {
 		const name = newName.trim();
@@ -39,6 +43,29 @@
 			return;
 		}
 		if (res.ok) toast.show('Category deleted', 'info');
+	}
+
+	function openIcons(id: string) {
+		iconTargetId = id;
+		const current = categories.list.find((c) => c.id === id)?.iconKeys ?? [];
+		iconDraft = [...current];
+	}
+
+	function closeIcons() {
+		iconTargetId = null;
+		iconDraft = [];
+	}
+
+	function toggleIcon(key: ProductIconKey) {
+		if (iconDraft.includes(key)) iconDraft = iconDraft.filter((k) => k !== key);
+		else iconDraft = [...iconDraft, key];
+	}
+
+	async function saveIcons() {
+		if (!iconTargetId) return;
+		await categories.setIconKeys(iconTargetId, iconDraft);
+		toast.show('Category icons updated');
+		closeIcons();
 	}
 </script>
 
@@ -114,6 +141,12 @@
 							<p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{c.name}</p>
 							<div class="flex flex-shrink-0 gap-2">
 								<button
+									onclick={() => openIcons(c.id)}
+									class="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 active:bg-gray-50"
+								>
+									Icons
+								</button>
+								<button
 									onclick={() => startRename(c.id, c.name)}
 									class="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 active:bg-gray-50"
 								>
@@ -133,4 +166,54 @@
 		{/if}
 	</div>
 </div>
+
+{#if iconTargetId}
+	<div
+		class="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+		role="button"
+		tabindex="-1"
+		onclick={closeIcons}
+		onkeydown={(e) => e.key === 'Escape' && closeIcons()}
+	>
+		<div
+			class="w-full max-w-sm overflow-y-auto rounded-t-2xl bg-white px-5 pb-8 pt-5"
+			style="max-height: 92dvh;"
+			role="presentation"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200"></div>
+			<h2 class="mb-4 text-base font-bold text-gray-900">Category icon options</h2>
+			<p class="mb-4 text-sm text-gray-400">Pick which icons show up in “Suggested” for this category.</p>
+
+			<div class="flex flex-wrap gap-2">
+				{#each PRODUCT_ICON_OPTIONS as opt (opt.key)}
+					<button
+						onclick={() => toggleIcon(opt.key)}
+						class="flex h-10 w-10 items-center justify-center rounded-xl transition
+							{iconDraft.includes(opt.key) ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}"
+						aria-label={opt.label}
+						title={opt.label}
+					>
+						<ProductIcon iconKey={opt.key} class="h-5 w-5 text-gray-800" />
+					</button>
+				{/each}
+			</div>
+
+			<div class="mt-6 flex gap-3">
+				<button
+					onclick={closeIcons}
+					class="flex-1 rounded-xl border border-gray-200 py-3.5 text-sm font-medium text-gray-700 active:bg-gray-50"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={saveIcons}
+					class="flex-1 rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700"
+				>
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 

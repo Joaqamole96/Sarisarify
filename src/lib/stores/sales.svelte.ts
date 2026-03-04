@@ -46,7 +46,7 @@ export function calcLineTotal(item: CartItem): number {
 		base = unitPrice * quantity;
 	}
 
-	const deposit  = depositApplied  ? (product.depositAmount  ?? 0)           : 0;
+	const deposit  = depositApplied  ? (product.depositAmount  ?? 0) * quantity : 0;
 	const discount = discountApplied ? (product.discountAmount ?? 0) * quantity : 0;
 
 	return base + deposit - discount;

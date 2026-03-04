@@ -9,13 +9,40 @@
 	import type { Product, ProductCategory } from '$lib/types';
 
 	let openPriceTarget = $state<Product | null>(null);
-	let activeCategory  = $state<ProductCategory | 'All'>('All');
+	let selectedCategories = $state<ProductCategory[]>([]);
 
 	let visibleProducts = $derived(
-		activeCategory === 'All'
+		selectedCategories.length === 0
 			? products.list
-			: products.list.filter((p) => p.category === activeCategory)
+			: products.list.filter((p) => selectedCategories.includes(p.category))
 	);
+
+	function groupByCategory(list: Product[]): Array<{ category: string; items: Product[] }> {
+		const by = new Map<string, Product[]>();
+		for (const p of list) {
+			const cat = p.category || 'Uncategorized';
+			const arr = by.get(cat);
+			if (arr) arr.push(p);
+			else by.set(cat, [p]);
+		}
+
+		const order = categories.list.map((c) => c.name);
+		const keys = Array.from(by.keys()).sort((a, b) => {
+			const ai = order.indexOf(a);
+			const bi = order.indexOf(b);
+			if (ai === -1 && bi === -1) return a.localeCompare(b);
+			if (ai === -1) return 1;
+			if (bi === -1) return -1;
+			return ai - bi;
+		});
+
+		return keys.map((k) => ({
+			category: k,
+			items: (by.get(k) ?? []).sort((a, b) => a.name.localeCompare(b.name))
+		}));
+	}
+
+	let groupedVisible = $derived(groupByCategory(visibleProducts));
 
 	let populatedCategories = $derived(
 		categories.list
@@ -46,6 +73,11 @@
 		const hasBorrow = params.borrowerId !== undefined;
 		sales.confirm(params);
 		toast.show(hasBorrow ? 'Sale confirmed — utang recorded' : 'Sale confirmed');
+	}
+
+	function clearCart() {
+		sales.reset();
+		toast.show('Cart cleared', 'info');
 	}
 
 	function cartQty(productId: string): number {
@@ -89,9 +121,17 @@
 	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
 		<h1 class="text-lg font-bold text-gray-900">Sales</h1>
 		{#if sales.itemCount > 0}
-			<span class="rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-semibold text-green-700">
-				{sales.itemCount} item{sales.itemCount !== 1 ? 's' : ''}
-			</span>
+			<div class="flex items-center gap-2">
+				<button
+					onclick={clearCart}
+					class="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 active:bg-gray-200"
+				>
+					Clear
+				</button>
+				<span class="rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-semibold text-green-700">
+					{sales.itemCount} item{sales.itemCount !== 1 ? 's' : ''}
+				</span>
+			</div>
 		{/if}
 	</header>
 
@@ -161,9 +201,9 @@
 			style="scrollbar-width: none; -ms-overflow-style: none;"
 		>
 			<button
-				onclick={() => activeCategory = 'All'}
+				onclick={() => selectedCategories = []}
 				class="flex-shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors
-					{activeCategory === 'All'
+					{selectedCategories.length === 0
 						? 'bg-green-600 text-white'
 						: 'bg-gray-100 text-gray-600 active:bg-gray-200'}"
 			>
@@ -171,9 +211,15 @@
 			</button>
 			{#each populatedCategories as cat}
 				<button
-					onclick={() => activeCategory = cat}
+					onclick={() => {
+						if (selectedCategories.includes(cat)) {
+							selectedCategories = selectedCategories.filter((c) => c !== cat);
+						} else {
+							selectedCategories = [...selectedCategories, cat];
+						}
+					}}
 					class="flex-shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors
-						{activeCategory === cat
+						{selectedCategories.includes(cat)
 							? 'bg-green-600 text-white'
 							: 'bg-gray-100 text-gray-600 active:bg-gray-200'}"
 				>
@@ -196,53 +242,57 @@
 				<p class="text-sm text-gray-400">No products in this category.</p>
 			</div>
 		{:else}
-			<div class="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-				{#each visibleProducts as product (product.id)}
-					{@const qty = cartQty(product.id)}
-					<div class="relative">
-						<!-- Main tap target -->
-						<button
-							onclick={() => handleProductTap(product)}
-							class="flex w-full flex-col items-center gap-1.5 rounded-2xl
-								border-2 bg-white px-2 py-3 text-center active:bg-gray-50 transition-colors
-								{qty > 0 ? 'border-green-400 bg-green-50' : 'border-gray-100'}"
-						>
-							<!-- Quantity badge -->
-							{#if qty > 0}
-								<span class="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
-									rounded-full bg-green-600 text-xs font-bold text-white shadow">
-									{qty}
-								</span>
-							{/if}
+			<div class="pb-2">
+				{#each groupedVisible as section (section.category)}
+					<div class="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-2 backdrop-blur">
+						<p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{section.category}</p>
+					</div>
+					<div class="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+						{#each section.items as product (product.id)}
+							{@const qty = cartQty(product.id)}
+							<div class="relative">
+								<button
+									onclick={() => handleProductTap(product)}
+									class="flex w-full flex-col items-center gap-1.5 rounded-2xl
+										border-2 bg-white px-2 py-3 text-center active:bg-gray-50 transition-colors
+										{qty > 0 ? 'border-green-400 bg-green-50' : 'border-gray-100'}"
+								>
+									{#if qty > 0}
+										<span class="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center
+											rounded-full bg-green-600 text-xs font-bold text-white shadow">
+											{qty}
+										</span>
+									{/if}
 
-							<span class="flex items-center justify-center">
-								<ProductIcon
-									iconKey={product.iconKey}
-									iconEmoji={product.iconEmoji}
-									class="h-8 w-8 text-gray-900"
-								/>
-							</span>
-							<p class="w-full truncate text-xs font-semibold leading-tight text-gray-900">
-								{product.name}
-							</p>
-							<p class="text-xs font-medium leading-tight
-								{product.pricingMode === 'open' ? 'text-gray-400 italic' : 'text-green-700'}">
-								{priceDisplay(product)}
-							</p>
-						</button>
+									<span class="flex items-center justify-center">
+										<ProductIcon
+											iconKey={product.iconKey}
+											iconEmoji={product.iconEmoji}
+											class="h-8 w-8 text-gray-900"
+										/>
+									</span>
+									<p class="w-full truncate text-xs font-semibold leading-tight text-gray-900">
+										{product.name}
+									</p>
+									<p class="text-xs font-medium leading-tight
+										{product.pricingMode === 'open' ? 'text-gray-400 italic' : 'text-green-700'}">
+										{priceDisplay(product)}
+									</p>
+								</button>
 
-						<!-- Quick decrement — only visible when item is in cart and not open-priced -->
-						{#if qty > 0 && product.pricingMode !== 'open'}
-							<button
-								onclick={(e) => {
-									e.stopPropagation();
-									sales.removeOne(product.id, cartUnitPrice(product.id));
-								}}
-								class="absolute top-0 right-0 h-full w-6 flex items-center justify-center
-									rounded-r-2xl bg-gray-400 text-white active:bg-gray-600"
-								aria-label="Remove one {product.name}"
-							>−</button>
-						{/if}
+								{#if qty > 0 && product.pricingMode !== 'open'}
+									<button
+										onclick={(e) => {
+											e.stopPropagation();
+											sales.removeOne(product.id, cartUnitPrice(product.id));
+										}}
+										class="absolute top-0 right-0 h-full w-6 flex items-center justify-center
+											rounded-r-2xl bg-gray-400 text-white active:bg-gray-600"
+										aria-label="Remove one {product.name}"
+									>−</button>
+								{/if}
+							</div>
+						{/each}
 					</div>
 				{/each}
 			</div>

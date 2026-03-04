@@ -119,7 +119,10 @@
 
 	let isEditing = $derived(!!product);
 
-	let suggestedKeys = $derived(iconKeysForCategory(category));
+	let configuredCategoryIcons = $derived(
+		categories.list.find((c) => c.name === category)?.iconKeys
+	);
+	let suggestedKeys = $derived((configuredCategoryIcons?.length ? configuredCategoryIcons : iconKeysForCategory(category)));
 	let suggestedOptions = $derived(
 		PRODUCT_ICON_OPTIONS.filter((o) => suggestedKeys.includes(o.key))
 	);
@@ -133,7 +136,7 @@
 ></button>
 
 <!-- Sheet -->
-<div class="fixed bottom-0 left-0 right-0 z-50 flex max-h-[92dvh] flex-col rounded-t-2xl bg-white">
+<div class="fixed bottom-0 left-0 right-0 z-50 flex max-h-[92dvh] flex-col rounded-t-2xl bg-emerald-50">
 
 	<!-- Handle + header -->
 	<div class="flex flex-col items-center px-4 pt-3 pb-2">

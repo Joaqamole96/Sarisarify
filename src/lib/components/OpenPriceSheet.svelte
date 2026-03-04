@@ -49,7 +49,7 @@
 >
 	<!-- Sheet — stop propagation so clicks inside don't close -->
 	<div
-		class="w-full max-w-sm rounded-t-2xl bg-white px-5 pb-8 pt-5"
+		class="w-full max-w-sm rounded-t-2xl bg-emerald-50 px-5 pb-8 pt-5"
 		role="presentation"
 		onclick={(e) => e.stopPropagation()}
 	>

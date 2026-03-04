@@ -16,16 +16,21 @@ import ShowerHead from 'lucide-svelte/icons/shower-head';
 import Toilet from 'lucide-svelte/icons/toilet';
 import Archive from 'lucide-svelte/icons/archive';
 import Tag from 'lucide-svelte/icons/tag';
+import Snowflake from 'lucide-svelte/icons/snowflake';
+import Pill from 'lucide-svelte/icons/pill';
+import Popcorn from 'lucide-svelte/icons/popcorn';
 
 export type ProductIconKey =
 	| 'package'
 	| 'basket'
 	| 'cigarette'
 	| 'candy'
+	| 'chips'
 	| 'drink'
 	| 'beer'
 	| 'wine'
 	| 'egg'
+	| 'ice'
 	| 'oil'
 	| 'utensils'
 	| 'noodles'
@@ -33,6 +38,7 @@ export type ProductIconKey =
 	| 'toiletries'
 	| 'tissue'
 	| 'canned'
+	| 'medicine'
 	| 'load';
 
 export type ProductIconOption = {
@@ -58,10 +64,12 @@ export const PRODUCT_ICON_OPTIONS: readonly ProductIconOption[] = [
 	{ key: 'basket',     label: 'Food/Rice',    Icon: ShoppingBasket },
 	{ key: 'cigarette',  label: 'Smokes',       Icon: Cigarette },
 	{ key: 'candy',      label: 'Snacks',       Icon: Candy },
+	{ key: 'chips',      label: 'Chips',        Icon: Popcorn },
 	{ key: 'drink',      label: 'Drinks',       Icon: CupSoda },
 	{ key: 'beer',       label: 'Beer',         Icon: Beer },
 	{ key: 'wine',       label: 'Alcohol',      Icon: Wine },
 	{ key: 'egg',        label: 'Eggs',         Icon: Egg },
+	{ key: 'ice',        label: 'Ice/Cold',     Icon: Snowflake },
 	{ key: 'oil',        label: 'Oil/Liquids',  Icon: Droplets },
 	{ key: 'utensils',   label: 'Food/Ulam',    Icon: Utensils },
 	{ key: 'noodles',    label: 'Instant',      Icon: Soup },
@@ -69,6 +77,7 @@ export const PRODUCT_ICON_OPTIONS: readonly ProductIconOption[] = [
 	{ key: 'toiletries', label: 'Toiletries',   Icon: ShowerHead },
 	{ key: 'tissue',     label: 'Tissue/Paper', Icon: Toilet },
 	{ key: 'canned',     label: 'Canned/Jars',  Icon: Archive },
+	{ key: 'medicine',   label: 'Medicine',     Icon: Pill },
 	{ key: 'load',       label: 'Load',         Icon: Tag },
 ] as const;
 
@@ -83,11 +92,11 @@ export function getProductIconComponent(key: string | undefined): ComponentType 
 
 const GROUPS: Record<ProductIconGroupKey, readonly ProductIconKey[]> = {
 	all: [
-		'package', 'basket', 'cigarette', 'candy', 'drink', 'beer', 'wine', 'egg',
-		'oil', 'utensils', 'noodles', 'cleaning', 'toiletries', 'tissue', 'canned', 'load'
+		'package', 'basket', 'cigarette', 'candy', 'chips', 'drink', 'beer', 'wine', 'egg',
+		'ice', 'oil', 'utensils', 'noodles', 'cleaning', 'toiletries', 'tissue', 'canned', 'medicine', 'load'
 	],
 	smokes: ['cigarette', 'package'],
-	snacks: ['candy', 'package'],
+	snacks: ['chips', 'candy', 'package'],
 	drinks: ['drink', 'package'],
 	instant_drinks: ['drink', 'package'],
 	alcohol: ['beer', 'wine', 'package'],

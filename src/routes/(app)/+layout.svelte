@@ -13,14 +13,14 @@
 	];
 </script>
 
-<div class="flex h-screen flex-col">
+<div class="flex h-screen flex-col bg-emerald-50/40">
 	<!-- Main content area -->
 	<main class="flex-1 overflow-hidden">
 		{@render children()}
 	</main>
 
 	<!-- Bottom navigation -->
-	<nav class="flex border-t border-gray-200 bg-white">
+	<nav class="flex border-t border-emerald-100 bg-white/95 backdrop-blur">
 		{#each tabs as tab}
 			<a
 				href={tab.href}
