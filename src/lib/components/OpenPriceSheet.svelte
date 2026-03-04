@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { Product } from '$lib/types';
+	import ProductIcon from '$lib/components/ProductIcon.svelte';
 
 	interface Props {
 		product: Product;
@@ -10,6 +12,16 @@
 	let { product, onConfirm, onCancel }: Props = $props();
 
 	let rawValue = $state('');
+	let inputEl = $state<HTMLInputElement | null>(null);
+	let focused = $state(false);
+
+	$effect(() => {
+		if (focused) return;
+		tick().then(() => {
+			inputEl?.focus();
+			focused = true;
+		});
+	});
 
 	// Only accept whole-peso amounts for ice — no fractional open pricing
 	let parsed = $derived(parseInt(rawValue, 10));
@@ -45,8 +57,8 @@
 		<div class="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200"></div>
 
 		<div class="mb-5 flex items-center gap-3">
-			<span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-2xl">
-				{product.iconEmoji}
+			<span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+				<ProductIcon iconKey={product.iconKey} iconEmoji={product.iconEmoji} class="h-6 w-6 text-gray-900" />
 			</span>
 			<div>
 				<p class="text-sm font-semibold text-gray-900">{product.name}</p>
@@ -60,6 +72,7 @@
 				₱
 			</span>
 			<input
+				bind:this={inputEl}
 				type="number"
 				min="1"
 				step="1"
@@ -67,7 +80,6 @@
 				placeholder="0"
 				bind:value={rawValue}
 				onkeydown={handleKey}
-				autofocus
 				class="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-9 pr-4
 					text-xl font-semibold text-gray-900 focus:border-green-500 focus:outline-none
 					focus:ring-2 focus:ring-green-100"

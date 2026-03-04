@@ -133,7 +133,8 @@ function createSalesStore() {
 			const items: SaleLineItem[] = cart.map((item) => ({
 				productId:       item.product.id,
 				productName:     item.product.name,
-				productEmoji:    item.product.iconEmoji,
+				...(item.product.iconKey ? { productIconKey: item.product.iconKey } : {}),
+				...(item.product.iconEmoji ? { productEmoji: item.product.iconEmoji } : {}),
 				pricingMode:     item.product.pricingMode,
 				quantity:        item.quantity,
 				unitPrice:       item.unitPrice,

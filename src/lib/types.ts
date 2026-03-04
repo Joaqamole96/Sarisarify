@@ -2,18 +2,9 @@ import type { Timestamp } from 'firebase/firestore';
 
 // --- Products ---
 
-export const PRODUCT_CATEGORIES = [
-	'Smokes',
-	'Snacks',
-	'Drinks',
-	'Instant Drinks',
-	'Alcohol',
-	'Food',
-	'Toiletries',
-	'Load'
-] as const;
-
-export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
+// Categories are runtime-managed (Sprint 3 P-8).
+// Stored as plain strings on products; default seed list lives in categories store.
+export type ProductCategory = string;
 
 export type PricingMode = 'per_sale' | 'per_bundle' | 'open';
 // per_sale:   lineTotal = ceil(price × qty) — for individual items, always ceiling rounding
@@ -28,7 +19,10 @@ export interface Product {
 	                             // for per_bundle: price per unit; ignored when pricingMode === 'open'
 	pricingMode: PricingMode;
 	unitLabel?: string;          // display only — "pc", "sachet", "stick"
-	iconEmoji: string;
+	// iconKey is the preferred icon reference (Sprint 3 D-6).
+	// iconEmoji is kept for backwards compatibility with older products.
+	iconKey?: string;
+	iconEmoji?: string;
 	category: ProductCategory;
 
 	// Bundle pricing (only for per_bundle)
@@ -56,7 +50,8 @@ export type NewProduct = Omit<Product, 'id' | 'stock' | 'createdAt'>;
 export interface SaleLineItem {
 	productId: string;
 	productName: string;         // snapshot at time of sale
-	productEmoji: string;        // snapshot
+	productIconKey?: string;     // snapshot (preferred)
+	productEmoji?: string;       // snapshot (legacy)
 	pricingMode: PricingMode;
 	quantity: number;
 	unitPrice: number;           // for 'open': operator-entered price; for others: product.price
@@ -109,3 +104,17 @@ export interface BorrowRecord {
 }
 
 export type NewBorrowRecord = Omit<BorrowRecord, 'id' | 'createdAt'>;
+
+// --- Borrow payments (Sprint 3) ---
+
+export interface BorrowPayment {
+	id: string;
+	borrowId: string;            // reference to borrows/{borrowId}
+	borrowerId: string;
+	borrowerName: string;        // snapshot at time of payment
+	amount: number;              // payment amount applied to remainingAmount
+	note?: string;
+	createdAt: Timestamp;
+}
+
+export type NewBorrowPayment = Omit<BorrowPayment, 'id' | 'createdAt'>;

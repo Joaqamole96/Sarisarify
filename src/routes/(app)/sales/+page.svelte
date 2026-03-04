@@ -3,12 +3,12 @@
 	import { sales, calcLineTotal } from '$lib/stores/sales.svelte.ts';
 	import { toast } from '$lib/stores/toast.svelte.ts';
 	import OpenPriceSheet from '$lib/components/OpenPriceSheet.svelte';
-	import ConfirmSaleSheet from '$lib/components/ConfirmSaleSheet.svelte';
-	import { PRODUCT_CATEGORIES } from '$lib/types';
+	import ConfirmSalePanel from '$lib/components/ConfirmSalePanel.svelte';
+	import ProductIcon from '$lib/components/ProductIcon.svelte';
+	import { categories } from '$lib/stores/categories.svelte.ts';
 	import type { Product, ProductCategory } from '$lib/types';
 
 	let openPriceTarget = $state<Product | null>(null);
-	let showConfirm     = $state(false);
 	let activeCategory  = $state<ProductCategory | 'All'>('All');
 
 	let visibleProducts = $derived(
@@ -18,7 +18,9 @@
 	);
 
 	let populatedCategories = $derived(
-		PRODUCT_CATEGORIES.filter((cat) => products.list.some((p) => p.category === cat))
+		categories.list
+			.map((c) => c.name)
+			.filter((cat) => products.list.some((p) => p.category === cat))
 	);
 
 	function handleProductTap(product: Product) {
@@ -43,7 +45,6 @@
 	}) {
 		const hasBorrow = params.borrowerId !== undefined;
 		sales.confirm(params);
-		showConfirm = false;
 		toast.show(hasBorrow ? 'Sale confirmed — utang recorded' : 'Sale confirmed');
 	}
 
@@ -82,7 +83,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col">
+<div class="mx-auto flex h-full w-full max-w-5xl flex-col">
 
 	<!-- Header -->
 	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
@@ -101,7 +102,11 @@
 				{#each sales.cart as item (item.product.id + '-' + item.unitPrice)}
 					<div class="flex items-center justify-between text-sm">
 						<div class="flex min-w-0 items-center gap-1.5">
-							<span class="text-base">{item.product.iconEmoji}</span>
+							<ProductIcon
+								iconKey={item.product.iconKey}
+								iconEmoji={item.product.iconEmoji}
+								class="h-4 w-4 text-gray-900"
+							/>
 							<span class="truncate text-gray-700">{item.product.name}</span>
 							{#if item.product.pricingMode === 'open'}
 								<span class="text-xs text-gray-400">@ {formatPeso(item.unitPrice)}</span>
@@ -210,7 +215,13 @@
 								</span>
 							{/if}
 
-							<span class="text-3xl leading-none">{product.iconEmoji}</span>
+							<span class="flex items-center justify-center">
+								<ProductIcon
+									iconKey={product.iconKey}
+									iconEmoji={product.iconEmoji}
+									class="h-8 w-8 text-gray-900"
+								/>
+							</span>
 							<p class="w-full truncate text-xs font-semibold leading-tight text-gray-900">
 								{product.name}
 							</p>
@@ -240,16 +251,7 @@
 
 	<!-- Confirm bar -->
 	{#if sales.cart.length > 0}
-		<div class="border-t border-gray-100 bg-white px-4 py-3">
-			<button
-				onclick={() => showConfirm = true}
-				class="flex w-full items-center justify-between rounded-xl bg-green-600
-					px-5 py-4 active:bg-green-700"
-			>
-				<span class="text-sm font-semibold text-white">Confirm Sale</span>
-				<span class="text-lg font-bold text-white">{formatPeso(sales.total)}</span>
-			</button>
-		</div>
+		<ConfirmSalePanel total={sales.total} onConfirm={handleConfirmSale} />
 	{/if}
 
 </div>
@@ -262,10 +264,4 @@
 	/>
 {/if}
 
-{#if showConfirm}
-	<ConfirmSaleSheet
-		total={sales.total}
-		onConfirm={handleConfirmSale}
-		onCancel={() => showConfirm = false}
-	/>
-{/if}
+<!-- ConfirmSaleSheet replaced by inline ConfirmSalePanel (Sprint 3 SA-8) -->

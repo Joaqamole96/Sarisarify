@@ -10,7 +10,6 @@ import {
 	orderBy
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
-import { DEFAULT_ICON } from '$lib/icons';
 import type { Product, NewProduct } from '$lib/types';
 
 const COLLECTION = 'products';
@@ -31,7 +30,8 @@ function createProductsStore() {
 				name:        data.name,
 				price:       data.price,
 				pricingMode: data.pricingMode ?? 'per_sale',
-				iconEmoji:   data.iconEmoji   ?? DEFAULT_ICON,
+				...(data.iconKey ? { iconKey: data.iconKey } : {}),
+				...(data.iconEmoji ? { iconEmoji: data.iconEmoji } : {}),
 				category:    data.category,
 				trackStock:  data.trackStock  ?? true,
 				stock:       0,

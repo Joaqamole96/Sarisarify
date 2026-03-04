@@ -85,6 +85,42 @@
 | D-6* | As an operator, I want product icons from a proper icon library | Emoji picker replaced with Material Symbols or equivalent open icon set; resolves rendering inconsistency on older Android versions | 🔴 Must Have | To Do |
 | UX-1 | As an operator, I want the app to be usable on tablets and laptops | Product grid and cart strip use responsive column counts (3 mobile, 4 tablet, 5+ desktop); font sizes and tap targets remain appropriate | 🟡 Should Have | To Do |
 
+### Sprint 3 — Execution Plan (working notes)
+
+**Committed scope (Sprint 3 is not done without these):**
+- **B-1**: Borrows overview list shows borrowers + outstanding totals (hide paid by default).
+- **B-2**: Borrower detail shows all borrows (newest first), with original + remaining + status.
+- **B-3**: Record payment against a borrow (partial/full). Updates remaining + status and creates a payment record.
+- **SA-8**: Inline confirm panel on Sales page (no modal). Borrower selector only appears when \(borrow > 0\).
+- **D-6***: Replace emoji icon picker with icon library, while keeping legacy emoji rendering as a fallback.
+
+**Stretch scope (only if committed scope is stable by mid-sprint):**
+- **UX-1**: Responsive tuning across Sales/Products/Borrows.
+- **P-9**: Products browse layout grouped by category.
+- **P-10**: Icon picker grouped by category.
+- **SA-9**: Post-sale note editing (depends on Stats detail view existing).
+
+**Planned implementation sequence (dependency-driven):**
+- **Phase A — Data layer first**
+  - Create a `borrows` store for querying borrows by borrower and aggregating outstanding balances.
+  - Add `borrowPayments` (new collection) to satisfy B-3 “payment record created”.
+  - Confirm/record Firestore composite index needs early (likely `(borrowerId, createdAt)` and `(status, createdAt)` for `borrows`).
+- **Phase B — Borrows UI**
+  - `/borrows`: borrower list + totals + hide-paid toggle.
+  - Borrower detail: borrow record list + payment action.
+- **Phase C — Sales UX**
+  - Move confirm total + cash input + borrow/change display inline on Sales page.
+  - Borrower selector appears only when borrow > 0 (reuse existing borrower store).
+- **Phase D — Icon library migration**
+  - Introduce a `ProductIcon` renderer component.
+  - Store an `iconKey` going forward; keep `iconEmoji` as a fallback for existing products.
+
+**Definition of Done (Sprint 3):**
+- **Functional**: B-1/B-2/B-3/SA-8/D-6 meet acceptance criteria.
+- **Offline-first**: borrows payment + sale confirm behave correctly when offline then reconnecting.
+- **No regressions**: open-priced products, deposit, and discount still compute totals correctly.
+- **UX**: empty states and tap targets are appropriate for fast shop-floor usage.
+
 ---
 
 ## Sprint 4 — Statistics

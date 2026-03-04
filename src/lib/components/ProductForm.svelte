@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { PRODUCT_ICONS, DEFAULT_ICON } from '$lib/icons';
-	import { PRODUCT_CATEGORIES } from '$lib/types';
+	import ProductIcon from '$lib/components/ProductIcon.svelte';
+	import { PRODUCT_ICON_OPTIONS, iconKeysForCategory, type ProductIconKey } from '$lib/productIcons';
+	import { categories } from '$lib/stores/categories.svelte.ts';
 	import type { Product, NewProduct, PricingMode, ProductCategory } from '$lib/types';
 
 	interface Props {
@@ -11,17 +12,50 @@
 
 	let { product, onSave, onCancel }: Props = $props();
 
-	let name           = $state(product?.name            ?? '');
-	let price          = $state(product?.price            ?? '');
-	let pricingMode    = $state<PricingMode>(product?.pricingMode   ?? 'per_sale');
-	let unitLabel      = $state(product?.unitLabel        ?? '');
-	let iconEmoji      = $state(product?.iconEmoji        ?? DEFAULT_ICON);
-	let category       = $state<ProductCategory>(product?.category  ?? PRODUCT_CATEGORIES[0]);
-	let trackStock     = $state(product?.trackStock       ?? true);
-	let depositAmount  = $state(product?.depositAmount    ?? '');
-	let discountAmount = $state(product?.discountAmount   ?? '');
-	let bundleQuantity = $state(product?.bundleQuantity   ?? '');
-	let bundlePrice    = $state(product?.bundlePrice      ?? '');
+	let name           = $state('');
+	let price          = $state<string | number>('');
+	let pricingMode    = $state<PricingMode>('per_sale');
+	let unitLabel      = $state('');
+	let iconKey        = $state<ProductIconKey>('package');
+	let iconEmoji      = $state('');
+	let category       = $state<ProductCategory>('');
+	type IconView = 'suggested' | 'all';
+	let iconView = $state<IconView>('suggested');
+	let trackStock     = $state(true);
+	let depositAmount  = $state<string | number>('');
+	let discountAmount = $state<string | number>('');
+	let bundleQuantity = $state<string | number>('');
+	let bundlePrice    = $state<string | number>('');
+
+	// Initialize local form state once from the incoming product (if any).
+	// This avoids Svelte 5 "state referenced locally" warnings while preserving the
+	// expected "edit form is prefilled once" behaviour.
+	let initialized = $state(false);
+	$effect(() => {
+		if (initialized) return;
+		if (product) {
+			name = product.name ?? '';
+			price = product.price ?? '';
+			pricingMode = product.pricingMode ?? 'per_sale';
+			unitLabel = product.unitLabel ?? '';
+			iconKey = (product.iconKey as ProductIconKey) ?? 'package';
+			iconEmoji = product.iconEmoji ?? '';
+			category = product.category ?? '';
+			trackStock = product.trackStock ?? true;
+			depositAmount = product.depositAmount ?? '';
+			discountAmount = product.discountAmount ?? '';
+			bundleQuantity = product.bundleQuantity ?? '';
+			bundlePrice = product.bundlePrice ?? '';
+		}
+		initialized = true;
+	});
+
+	// If creating a new product, default the category to the first available category.
+	$effect(() => {
+		if (product) return;
+		if (category) return;
+		if (categories.list.length > 0) category = categories.list[0].name;
+	});
 
 	let saving = $state(false);
 	let errors = $state<Record<string, string>>({});
@@ -67,7 +101,8 @@
 				name:        name.trim(),
 				price:       pricingMode === 'open' ? 0 : Number(price),
 				pricingMode,
-				iconEmoji,
+				iconKey,
+				...(iconEmoji.trim() && { iconEmoji: iconEmoji.trim() }),
 				category,
 				trackStock:  pricingMode === 'open' ? false : trackStock,
 				...(unitLabel.trim()       && { unitLabel:      unitLabel.trim() }),
@@ -82,7 +117,12 @@
 		}
 	}
 
-	const isEditing = !!product;
+	let isEditing = $derived(!!product);
+
+	let suggestedKeys = $derived(iconKeysForCategory(category));
+	let suggestedOptions = $derived(
+		PRODUCT_ICON_OPTIONS.filter((o) => suggestedKeys.includes(o.key))
+	);
 </script>
 
 <!-- Backdrop -->
@@ -116,25 +156,74 @@
 		<!-- Icon picker -->
 		<div>
 			<p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Icon</p>
-			<div class="flex flex-wrap gap-2">
-				{#each PRODUCT_ICONS as emoji}
-					<button
-						onclick={() => iconEmoji = emoji}
-						class="flex h-10 w-10 items-center justify-center rounded-xl text-xl transition
-							{iconEmoji === emoji ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}"
-					>
-						{emoji}
-					</button>
-				{/each}
+			<div class="mb-2 flex rounded-xl overflow-hidden border border-gray-200">
+				<button
+					onclick={() => iconView = 'suggested'}
+					class="flex-1 py-2.5 text-sm font-medium transition
+						{iconView === 'suggested' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
+				>
+					Suggested
+				</button>
+				<button
+					onclick={() => iconView = 'all'}
+					class="flex-1 py-2.5 text-sm font-medium transition
+						{iconView === 'all' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}"
+				>
+					All
+				</button>
 			</div>
+
+			{#if iconView === 'suggested'}
+				<div class="flex flex-wrap gap-2">
+					{#each suggestedOptions as opt (opt.key)}
+						<button
+							onclick={() => iconKey = opt.key}
+							class="flex h-10 w-10 items-center justify-center rounded-xl transition
+								{iconKey === opt.key ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}"
+							aria-label={opt.label}
+							title={opt.label}
+						>
+							<ProductIcon iconKey={opt.key} class="h-5 w-5 text-gray-800" />
+						</button>
+					{/each}
+				</div>
+				<p class="mt-2 text-xs text-gray-400">
+					Suggested icons are based on the selected category.
+				</p>
+			{:else}
+				<div class="flex flex-wrap gap-2">
+					{#each PRODUCT_ICON_OPTIONS as opt (opt.key)}
+						<button
+							onclick={() => iconKey = opt.key}
+							class="flex h-10 w-10 items-center justify-center rounded-xl transition
+								{iconKey === opt.key ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}"
+							aria-label={opt.label}
+							title={opt.label}
+						>
+							<ProductIcon iconKey={opt.key} class="h-5 w-5 text-gray-800" />
+						</button>
+					{/each}
+				</div>
+			{/if}
+			<p class="mt-2 text-xs text-gray-400">
+				Legacy emoji (optional):
+			</p>
+			<input
+				type="text"
+				bind:value={iconEmoji}
+				placeholder="Leave blank to use icons"
+				class="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm
+					text-gray-900 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100"
+			/>
 		</div>
 
 		<!-- Name -->
 		<div>
-			<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+			<label for="product-name" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 				Product name
 			</label>
 			<input
+				id="product-name"
 				type="text"
 				bind:value={name}
 				placeholder="e.g. Piattos, Marlboro Red"
@@ -148,7 +237,8 @@
 		<div>
 			<p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
 			<div class="flex flex-wrap gap-2">
-				{#each PRODUCT_CATEGORIES as cat}
+				{#each categories.list as c (c.id)}
+					{@const cat = c.name}
 					<button
 						onclick={() => category = cat}
 						class="rounded-full border px-3 py-1.5 text-sm font-medium transition
@@ -160,6 +250,9 @@
 					</button>
 				{/each}
 			</div>
+			{#if categories.list.length === 0}
+				<p class="mt-2 text-xs text-gray-400">No categories yet. Add one in Products → Categories.</p>
+			{/if}
 		</div>
 
 		<!-- Pricing mode -->
@@ -225,10 +318,11 @@
 		{#if pricingMode !== 'open'}
 			<div class="flex gap-3">
 				<div class="flex-1">
-					<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+					<label for="product-unit-price" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 						Unit price (₱)
 					</label>
 					<input
+						id="product-unit-price"
 						type="number"
 						inputmode="decimal"
 						min="0"
@@ -241,10 +335,11 @@
 					{#if errors.price}<p class="mt-1 text-xs text-red-500">{errors.price}</p>{/if}
 				</div>
 				<div class="w-28">
-					<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+					<label for="product-unit-label" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 						Unit label
 					</label>
 					<input
+						id="product-unit-label"
 						type="text"
 						bind:value={unitLabel}
 						placeholder="pc, sachet…"
@@ -258,10 +353,11 @@
 			{#if pricingMode === 'per_bundle'}
 				<div class="flex gap-3">
 					<div class="flex-1">
-						<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+						<label for="product-bundle-qty" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 							Bundle quantity
 						</label>
 						<input
+							id="product-bundle-qty"
 							type="number"
 							inputmode="numeric"
 							min="1"
@@ -274,10 +370,11 @@
 						{#if errors.bundleQuantity}<p class="mt-1 text-xs text-red-500">{errors.bundleQuantity}</p>{/if}
 					</div>
 					<div class="flex-1">
-						<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+						<label for="product-bundle-price" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 							Bundle price (₱)
 						</label>
 						<input
+							id="product-bundle-price"
 							type="number"
 							inputmode="decimal"
 							min="0"
@@ -322,10 +419,11 @@
 		<!-- Deposit — hidden for open pricing -->
 		{#if pricingMode !== 'open'}
 			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+				<label for="product-deposit" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 					Bottle deposit (₱) — optional
 				</label>
 				<input
+					id="product-deposit"
 					type="number"
 					inputmode="decimal"
 					min="0"
@@ -345,10 +443,11 @@
 
 			<!-- Discount -->
 			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
+				<label for="product-discount" class="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wide">
 					Allowed discount (₱) — optional
 				</label>
 				<input
+					id="product-discount"
 					type="number"
 					inputmode="decimal"
 					min="0"
