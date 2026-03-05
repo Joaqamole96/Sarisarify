@@ -10,17 +10,18 @@
 
 	let outstandingRows = $derived(borrows.borrowerBalances);
 
-	let rows = $derived(() => {
-		if (!showAllBorrowers) return outstandingRows;
-
-		const byId = new Map(outstandingRows.map((r) => [r.borrowerId, r]));
-		return borrowers.list
-			.map((b) => {
-				const existing = byId.get(b.id);
-				return existing ?? { borrowerId: b.id, borrowerName: b.name, outstanding: 0 };
-			})
-			.sort((a, b) => b.outstanding - a.outstanding);
-	});
+	let rows = $derived(
+		(() => {
+			if (!showAllBorrowers) return outstandingRows;
+			const byId = new Map(outstandingRows.map((r) => [r.borrowerId, r]));
+			return borrowers.list
+				.map((b) => {
+					const existing = byId.get(b.id);
+					return existing ?? { borrowerId: b.id, borrowerName: b.name, outstanding: 0 };
+				})
+				.sort((a, b) => b.outstanding - a.outstanding);
+		})()
+	);
 </script>
 
 <div class="mx-auto flex h-full w-full max-w-5xl flex-col">

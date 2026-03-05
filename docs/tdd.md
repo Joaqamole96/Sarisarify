@@ -1,8 +1,24 @@
+---
+
+# Guideline for updating tdd.md
+
+Read all files in the src/ directory. Then update tdd.md with the following:
+1. Under each data model, reflect the exact fields currently in the TypeScript types or interfaces. Do not invent fields — only document what exists in the code.
+2. For each feature section, mark its status as one of: [PLANNED] [IN PROGRESS] [IMPLEMENTED].
+3. If any business logic exists in the code that is not documented in tdd.md, add it under the relevant section.
+4. Do not change the structure or formatting of the existing tdd.md. Only update values, statuses, and add missing fields or rules.
+5. Do not remove any planned sections — just mark them [PLANNED] if not yet built.
+
+---
+
 # SARISARIFY
 ## Technical Design Document
 **Version 2.0 | March 2026**
 
 > **Purpose:** This document captures business rules, data models, and architectural decisions that are too detailed for the Product Vision and too structural for the Product Backlog. It is the reference for sprint implementation. Update it whenever a schema or rule decision is made during sprint planning.
+
+**Last Updated:** March 2026
+**Status:** [IMPLEMENTED] - Core data models and pricing logic implemented
 
 ---
 
@@ -17,10 +33,13 @@ All product data is stored in a Firestore collection named `products`. The canon
 | `id` | `string` | Yes | — | Firestore document ID. Added client-side after read. Never stored in the document itself. |
 | `name` | `string` | Yes | — | Product display name. Shown on catalogue and sales screens. |
 | `price` | `number` | Yes | — | Unit price in Philippine Peso, always ≥ 0. Ignored when `pricingMode` is `'open'`. |
-| `pricingMode` | `'fixed' \| 'per_unit' \| 'open'` | Yes | `'fixed'` | `fixed`: price × qty. `per_unit`: ceil(price × qty). `open`: price entered at sale time. See Section 2. |
+| `pricingMode` | `'per_sale' \| 'per_bundle' \| 'open'` | Yes | `'per_sale'` | `per_sale`: ceil(price × qty). `per_bundle`: bundle pricing with bundleQuantity/bundlePrice. `open`: price entered at sale time. See Section 2. |
 | `unitLabel` | `string?` | No | `undefined` | Display-only label shown next to price (e.g. `'pc'`, `'sachet'`). Not used in calculations. Not applicable for open-priced products. |
-| `iconEmoji` | `string` | Yes | `'📦'` | Single emoji character from the approved list in `src/lib/icons.ts`. Icon library migration (D-6) is planned for Sprint 3. |
-| `category` | `ProductCategory` | Yes | — | One of the 8 defined categories. See Section 1.2. |
+| `iconKey` | `string?` | No | `undefined` | Preferred icon reference (Sprint 3 D-6). Maps to lucide-svelte icons. |
+| `iconEmoji` | `string?` | No | `undefined` | Legacy emoji icon for backwards compatibility. Single emoji character from `src/lib/icons.ts`. |
+| `category` | `ProductCategory` | Yes | — | Product category (runtime-managed, not fixed enum). See Section 1.2. |
+| `bundleQuantity` | `number?` | No | `undefined` | Number of units in a bundle (e.g., 12 for a dozen). Only for `per_bundle` pricing. |
+| `bundlePrice` | `number?` | No | `undefined` | Price for the entire bundle (e.g., 120 for a dozen). Only for `per_bundle` pricing. |
 | `trackStock` | `boolean` | Yes | `true` | If false, product is excluded from inventory screens and auto-decrement on sale. Always `false` for open-priced products (locked in ProductForm). |
 | `stock` | `number` | Yes | `0` | Current unit count. Ignored when `trackStock` is false. Decremented by confirmed sales (Sprint 5). |
 | `depositAmount` | `number?` | No | `undefined` | If set, sales screen shows a per-item deposit toggle (+₱X). Not applicable for open-priced products. |
@@ -29,7 +48,7 @@ All product data is stored in a Firestore collection named `products`. The canon
 
 ### 1.2 Product Categories
 
-The `category` field is required on all products. The canonical list is defined as a TypeScript const array `PRODUCT_CATEGORIES` in `src/lib/types.ts` and is the single source of truth for category values.
+The `category` field is required on all products. Categories are runtime-managed via the `categories` store in `src/lib/stores/categories.svelte.ts`. The default categories are seeded from `DEFAULT_CATEGORIES` constant in the categories store.
 
 | Category | Contents |
 |---|---|
@@ -42,40 +61,37 @@ The `category` field is required on all products. The canonical list is defined 
 | Toiletries | Soap, shampoo, toothpaste, napkins, toilet paper, detergent, fabric conditioner |
 | Load | Mobile e-load — Globe and Smart denominations; modelled as separate fixed-price products per promo/denomination (e.g. Globe Go59, Smart Giga50) |
 
-Category management (adding, renaming, deleting categories) is planned for Sprint 3. Until then, categories are a fixed enum. The Load category uses fixed-price products — one Firestore document per denomination/promo. There is no variable-denomination load product type.
+Category management (adding, renaming, deleting categories) is implemented in Sprint 3. Categories are stored in a separate `categories` collection with real-time synchronization. The Load category uses fixed-price products — one Firestore document per denomination/promo. There is no variable-denomination load product type.
 
 ---
 
 ## 2. Pricing Logic
 
-### 2.1 Fixed Pricing (`pricingMode: 'fixed'`)
+### 2.1 Per-Sale Pricing (`pricingMode: 'per_sale'`)
 
-Used for the majority of products. The `price` field represents the price per sale unit.
-
-```
-Line total = price × quantity
-```
-
-Example: Piattos at ₱35, quantity 2 → total = ₱70.
-
-### 2.2 Per-Unit Pricing (`pricingMode: 'per_unit'`)
-
-Used for products sold by individual pieces where the unit price is not a whole peso (e.g. candy at ₱1.25/pc). The `price` field stores the fractional unit price. The total is ceiling-rounded to the nearest peso.
+Used for the majority of products. The `price` field represents the price per unit. The total is ceiling-rounded to the nearest peso.
 
 ```
 Line total = Math.ceil(price × quantity)
 ```
 
-Example — candy at ₱1.25/pc:
+Example: Candy at ₱1.25/pc, quantity 2 → total = ₱3.
 
-| Qty | Raw total | Rounded total | Operator charges |
-|---|---|---|---|
-| 1 | ₱1.25 | ₱2 | **₱2** |
-| 2 | ₱2.50 | ₱3 | **₱3** |
-| 3 | ₱3.75 | ₱4 | **₱4** |
-| 4 | ₱5.00 | ₱5 | **₱5** |
+### 2.2 Per-Bundle Pricing (`pricingMode: 'per_bundle'`)
 
-The bundle case (4 pcs / ₱5) is resolved naturally by tapping quantity 4 — no separate bundle product is needed.
+Used for products sold in bundles where a bundle has a different price than individual units (e.g., 12 eggs for ₱120 instead of ₱12 each). Requires `bundleQuantity` and `bundlePrice` fields.
+
+```
+Line total = (bundles × bundlePrice) + Math.ceil(remainder × unitPrice)
+```
+
+Where:
+- `bundles = Math.floor(quantity / bundleQuantity)`
+- `remainder = quantity % bundleQuantity`
+
+Example — eggs at ₱12/pc, bundle of 12 for ₱120:
+- Quantity 12: 1 bundle × ₱120 = ₱120
+- Quantity 13: 1 bundle × ₱120 + 1 pc × ₱12 = ₱132
 
 ### 2.3 Open Pricing (`pricingMode: 'open'`)
 
@@ -117,10 +133,11 @@ Confirmed sales are stored in a Firestore collection named `sales`. Sales are wr
 |---|---|---|
 | `productId` | `string` | Firestore ID of the product at time of sale. |
 | `productName` | `string` | Snapshot of product name. Preserved if product is later renamed or deleted. |
-| `productEmoji` | `string` | Snapshot of icon emoji at time of sale. |
+| `productIconKey` | `string?` | Snapshot of preferred icon key at time of sale (preferred over emoji). |
+| `productEmoji` | `string?` | Snapshot of legacy icon emoji at time of sale. |
 | `pricingMode` | `PricingMode` | Snapshot of pricing mode. Determines how `lineTotal` was calculated. |
 | `quantity` | `number` | Units added to this line. |
-| `unitPrice` | `number` | For `'open'`: operator-entered price. For `'fixed'`/`'per_unit'`: `product.price` at time of sale. |
+| `unitPrice` | `number` | For `'open'`: operator-entered price. For `'per_sale'`/`'per_bundle'`: `product.price` at time of sale. |
 | `lineTotal` | `number` | Final line total after rounding, deposit, and discount. Stored explicitly for query performance. |
 | `depositApplied` | `boolean` | Whether the deposit toggle was active for this line item. |
 | `depositAmount` | `number` | Deposit amount per line (0 if no deposit). Stored as snapshot. |
@@ -145,7 +162,7 @@ Confirmed sales are stored in a Firestore collection named `sales`. Sales are wr
 
 ## 4. Borrow Data Model
 
-Borrows track outstanding credit (utang) with individual customers. The model has three collections: `borrowers` (customer profiles), `borrows` (per-sale borrow records), and `payments` (per-payment events).
+Borrows track outstanding credit (utang) with individual customers. The model has three collections: `borrowers` (customer profiles), `borrows` (per-sale borrow records), and `borrowPayments` (per-payment events).
 
 ### 4.1 Borrower
 
@@ -172,18 +189,19 @@ Borrows track outstanding credit (utang) with individual customers. The model ha
 
 A `BorrowRecord` is created atomically with its parent `Sale` in a single Firestore batch write whenever `borrowAmount > 0`. This ensures a sale with a borrow always has a corresponding `BorrowRecord`, and vice versa.
 
-### 4.3 Payment
+### 4.3 BorrowPayment
 
 | Field | Type | Description |
 |---|---|---|
 | `id` | `string` | Firestore document ID. |
 | `borrowId` | `string` | Reference to the parent `BorrowRecord`. |
 | `borrowerId` | `string` | Denormalised for query convenience. |
+| `borrowerName` | `string` | Snapshot of borrower name at time of payment. |
 | `amount` | `number` | Amount paid in this payment event. |
 | `note` | `string?` | Optional operator note for this payment. |
 | `createdAt` | `Timestamp` | Server timestamp of the payment. |
 
-Each settlement event creates a new `Payment` document. The parent `BorrowRecord`'s `remainingAmount` is decremented and `status` is updated atomically in the same write. Payments are always against a specific `BorrowRecord` — there is no pooled balance concept in v1.
+Each settlement event creates a new `BorrowPayment` document. The parent `BorrowRecord`'s `remainingAmount` is decremented and `status` is updated atomically in the same write. Payments are always against a specific `BorrowRecord` — there is no pooled balance concept in v1.
 
 ---
 
@@ -256,3 +274,11 @@ The service worker cache key is `sarisarify-{BUILD_HASH}` where `BUILD_HASH` is 
 - **Firestore rules:** `allow read, write: if request.auth != null` — all collections, all paths. No role-based rules in v1.
 - **Auth:** Email/password, single shared account. Auth state managed as a singleton in `src/lib/firebase/auth.svelte.ts` via Svelte 5 runes.
 - **Composite indexes:** the `hasOutstandingBalance` query in `borrowers.svelte.ts` requires a composite index on `(borrowerId, status)`. Create via the Firestore console link generated on first query execution.
+
+### 7.7 Icon System Migration
+
+The product icon system supports both legacy emoji icons (`iconEmoji`) and modern lucide-svelte icons (`iconKey`). The `iconKey` field is preferred for new products (Sprint 3 D-6), while `iconEmoji` is maintained for backwards compatibility. Icon selection is managed through `src/lib/productIcons.ts` which provides a comprehensive set of lucide-svelte icons organized by category.
+
+### 7.8 Bundle Pricing Implementation
+
+Bundle pricing (`per_bundle` mode) is fully implemented with `bundleQuantity` and `bundlePrice` fields. The pricing calculation automatically applies bundle discounts when quantity reaches the bundle size, with remainder units priced at the regular unit price. This supports common sari-sari store scenarios like "12 eggs for ₱120" instead of ₱12 each.

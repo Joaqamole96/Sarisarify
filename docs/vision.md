@@ -1,3 +1,15 @@
+---
+
+# Guideline for updating vision.md
+
+Read vision.md and the current sprint-related files in src/. Then update vision.md with the following:
+1. Find the sprint list. For each sprint, mark it as one of: [COMPLETED] [IN PROGRESS] [PLANNED].
+2. If a sprint's features are partially built, list which sub-features are done and which are not.
+3. Do not rewrite goals, principles, or descriptions. Only update sprint statuses.
+4. Keep all original wording intact. This is a status update, not a rewrite.
+
+---
+
 # SARISARIFY
 ## Product Vision Document
 **Version 1.2 | March 2026**
@@ -114,13 +126,16 @@ The previous iteration of this project was blocked for an extended period by And
 
 Development follows an agile cadence with short sprints. Each sprint delivers a working, testable increment. No sprint is considered complete without a deployable build validated with operators.
 
-- **Sprint 0:** Environment setup, Firebase project, PWA scaffold — success criterion is app installs and opens on Android ✅ Complete
-- **Sprint 1:** Product catalogue management — success criterion is operators can add, edit, and delete products ✅ Complete
-- **Sprint 2:** Sales session — success criterion is operators can log a sale and confirm as cash, exact, or borrow ✅ Complete
-- **Sprint 3:** Borrows management + Sales UX overhaul + Category management — current sprint
-- **Sprint 4:** Statistics — revenue summaries and sales log
-- **Sprint 5:** Inventory — stock tracking and restock logging
-- **Sprint 6:** Assistant Phase 1 — rule-based insights
+- **Sprint 0:** Environment setup, Firebase project, PWA scaffold — success criterion is app installs and opens on Android ✅ [COMPLETED]
+- **Sprint 1:** Product catalogue management — success criterion is operators can add, edit, and delete products ✅ [COMPLETED]
+- **Sprint 2:** Sales session — success criterion is operators can log a sale and confirm as cash, exact, or borrow ✅ [COMPLETED]
+- **Sprint 3:** Borrows management + Sales UX overhaul + Category management — current sprint [IN PROGRESS]
+  - **Borrows management:** [NOT STARTED] - Borrowers list, borrow records, and payment recording not yet implemented
+  - **Sales UX overhaul:** [NOT STARTED] - Inline confirm panel and responsive layout not yet implemented  
+  - **Category management:** [NOT STARTED] - Runtime category management not yet implemented
+- **Sprint 4:** Statistics — revenue summaries and sales log [PLANNED]
+- **Sprint 5:** Inventory — stock tracking and restock logging [PLANNED]
+- **Sprint 6:** Assistant Phase 1 — rule-based insights [PLANNED]
 
 ### Agentic Development (from Sprint 3)
 
