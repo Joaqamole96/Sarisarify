@@ -16,21 +16,21 @@
 	function openEdit(product: Product) { editTarget = product; sheetMode = 'edit'; }
 	function closeSheet() { sheetMode = null; editTarget = null; }
 
-	async function handleSave(data: NewProduct) {
+	function handleSave(data: NewProduct) {
 		if (sheetMode === 'add') {
-			await products.add(data);
+			products.add(data);
 			toast.show(`${data.name} added`);
 		} else if (sheetMode === 'edit' && editTarget) {
-			await products.update(editTarget.id, data);
+			products.update(editTarget.id, data);
 			toast.show(`${data.name} updated`);
 		}
 		closeSheet();
 	}
 
-	async function confirmDelete() {
+	function confirmDelete() {
 		if (!deleteTarget) return;
 		const name = deleteTarget.name;
-		await products.remove(deleteTarget.id);
+		products.remove(deleteTarget.id);
 		deleteTarget = null;
 		toast.show(`${name} deleted`, 'info');
 	}

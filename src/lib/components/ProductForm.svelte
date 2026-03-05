@@ -6,7 +6,7 @@
 
 	interface Props {
 		product?: Product;
-		onSave: (data: NewProduct) => Promise<void>;
+		onSave: (data: NewProduct) => void;
 		onCancel: () => void;
 	}
 
@@ -111,7 +111,7 @@
 				...(pricingMode === 'per_bundle' && bundleQuantity !== '' && { bundleQuantity: Number(bundleQuantity) }),
 				...(pricingMode === 'per_bundle' && bundlePrice !== '' && { bundlePrice: Number(bundlePrice) }),
 			};
-			await onSave(data);
+			onSave(data);
 		} finally {
 			saving = false;
 		}
