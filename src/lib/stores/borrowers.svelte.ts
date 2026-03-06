@@ -2,11 +2,14 @@ import {
 	collection,
 	onSnapshot,
 	addDoc,
+	updateDoc,
+	deleteDoc,
 	serverTimestamp,
 	query,
 	orderBy,
 	getDocs,
-	where
+	where,
+	doc
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import type { Borrower, NewBorrower } from '$lib/types';
@@ -17,7 +20,6 @@ const BORROWS_COL   = 'borrows';
 function createBorrowersStore() {
 	let list = $state<Borrower[]>([]);
 
-	// Real-time listener sorted alphabetically — same pattern as products store.
 	const q = query(collection(db, BORROWERS_COL), orderBy('name'));
 	onSnapshot(q, (snap) => {
 		list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Borrower);
@@ -36,8 +38,16 @@ function createBorrowersStore() {
 			return ref.id;
 		},
 
-		// Returns true if this borrower has at least one unpaid or partial borrow.
-		// Used to show the outstanding balance warning during sale confirmation.
+		async rename(id: string, newName: string): Promise<void> {
+			const name = newName.trim();
+			if (!name) return;
+			await updateDoc(doc(db, BORROWERS_COL, id), { name });
+		},
+
+		async remove(id: string): Promise<void> {
+			await deleteDoc(doc(db, BORROWERS_COL, id));
+		},
+
 		async hasOutstandingBalance(borrowerId: string): Promise<boolean> {
 			const q = query(
 				collection(db, BORROWS_COL),
@@ -46,9 +56,18 @@ function createBorrowersStore() {
 			);
 			const snap = await getDocs(q);
 			return !snap.empty;
+		},
+
+		async outstandingTotal(borrowerId: string): Promise<number> {
+			const q = query(
+				collection(db, BORROWS_COL),
+				where('borrowerId', '==', borrowerId),
+				where('status', 'in', ['unpaid', 'partial'])
+			);
+			const snap = await getDocs(q);
+			return snap.docs.reduce((sum, d) => sum + (d.data().remainingAmount ?? 0), 0);
 		}
 	};
 }
 
-// Singleton — one listener for the entire app lifetime.
 export const borrowers = createBorrowersStore();
