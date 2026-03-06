@@ -97,10 +97,14 @@
 			}));
 	}
 
+	function categoryColor(name: string): string {
+		return categories.list.find((c) => c.name === name)?.color ?? '#9ca3af';
+	}
+
 	let grouped = $derived(groupByCategory(visibleProducts));
 </script>
 
-<div class="mx-auto flex h-full w-full max-w-5xl flex-col">
+<div class="relative mx-auto flex h-full w-full max-w-5xl flex-col">
 	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
 		<h1 class="text-lg font-bold text-gray-900">Products</h1>
 		<div class="flex items-center gap-3">
@@ -157,8 +161,11 @@
 		{:else}
 			<div class="pb-20">
 				{#each grouped as section (section.category)}
-					<div class="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-2 backdrop-blur">
-						<p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{section.category}</p>
+					<div
+						class="sticky top-0 z-10 border-b border-gray-100 bg-white/95 py-2 pl-3 pr-4 backdrop-blur"
+						style="border-left: 4px solid {categoryColor(section.category)}"
+					>
+						<p class="text-sm font-bold text-gray-800">{section.category}</p>
 					</div>
 					<ul>
 						{#each section.items as product (product.id)}
@@ -194,7 +201,7 @@
 
 	<button
 		onclick={openAdd}
-		class="absolute bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-white shadow-lg text-2xl active:bg-green-700"
+		class="absolute bottom-20 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-white shadow-lg text-2xl active:bg-green-700"
 		aria-label="Add product"
 	>+</button>
 </div>

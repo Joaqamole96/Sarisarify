@@ -1,9 +1,7 @@
-- The outstanding borrows in the Borrows tab is not displaying.
 - Consider color themes. Headers, footers, confirm sales, modals, and all other distinct sections should be a different color from white to distinguish from the page.
 - Consider moving the item filtering in the Sales tab to the left side and orienting it veritcally.
 - Consider hiding the sale item summary at the top of the Sales tab. Then add a swipe-down double bar UI to show it.
 - Consider hiding details in the Confirm Sale section, only showing the Confirm Sale button. Then add a swipe-up double bar UI to show it.
-- Product adding currently cannot be done offline, but should be.
 - Make bottle deposit and discount buttons in the sale item summary more prominent and visible.
 - Products tab subheaders (e.g. "Candies", "Drinks") are overlapping with the Add Product button.
 - Allow swiping between tabs.

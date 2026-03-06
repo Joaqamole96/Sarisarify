@@ -138,7 +138,10 @@
 								</button>
 							</div>
 						{:else}
-							<p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{c.name}</p>
+							<div class="flex min-w-0 flex-1 items-center gap-2">
+								<span class="h-3 w-3 flex-shrink-0 rounded-full" style="background-color: {c.color}"></span>
+								<p class="min-w-0 truncate text-sm font-semibold text-gray-900">{c.name}</p>
+							</div>
 							<div class="flex flex-shrink-0 gap-2">
 								<button
 									onclick={() => openIcons(c.id)}

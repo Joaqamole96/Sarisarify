@@ -21,6 +21,7 @@ const PRODUCTS_COL = 'products';
 export interface Category {
 	id: string;
 	name: string;
+	color: string;
 	iconKeys?: ProductIconKey[];
 	createdAt?: unknown;
 }
@@ -36,6 +37,23 @@ export const DEFAULT_CATEGORIES: readonly string[] = [
 	'Load'
 ] as const;
 
+const PALETTE = [
+	'#ef4444', // red
+	'#f97316', // orange
+	'#eab308', // yellow
+	'#22c55e', // green
+	'#06b6d4', // cyan
+	'#3b82f6', // blue
+	'#8b5cf6', // violet
+	'#ec4899', // pink
+];
+
+function pickColor(name: string): string {
+	let hash = 0;
+	for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+	return PALETTE[hash % PALETTE.length];
+}
+
 function normalizeId(name: string): string {
 	return name
 		.trim()
@@ -50,9 +68,15 @@ function createCategoriesStore() {
 
 	const q = query(collection(db, CATEGORIES_COL), orderBy('name'));
 	onSnapshot(q, async (snap) => {
-		list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Category);
+		list = snap.docs.map((d) => {
+			const data = d.data();
+			return {
+				id: d.id,
+				...data,
+				color: data.color ?? pickColor(data.name ?? d.id)
+			} as Category;
+		});
 
-		// Seed defaults once when the collection is empty.
 		if (!seeded && snap.empty) {
 			seeded = true;
 			const existing = await getDocs(collection(db, CATEGORIES_COL));
@@ -61,7 +85,11 @@ function createCategoriesStore() {
 			const batch = writeBatch(db);
 			for (const name of DEFAULT_CATEGORIES) {
 				const id = normalizeId(name);
-				batch.set(doc(db, CATEGORIES_COL, id), { name, createdAt: serverTimestamp() });
+				batch.set(doc(db, CATEGORIES_COL, id), {
+					name,
+					color: pickColor(name),
+					createdAt: serverTimestamp()
+				});
 			}
 			await batch.commit();
 		}
@@ -74,7 +102,11 @@ function createCategoriesStore() {
 			const name = nameRaw.trim();
 			if (!name) return;
 			const id = normalizeId(name);
-			await setDoc(doc(db, CATEGORIES_COL, id), { name, createdAt: serverTimestamp() }, { merge: true });
+			await setDoc(
+				doc(db, CATEGORIES_COL, id),
+				{ name, color: pickColor(name), createdAt: serverTimestamp() },
+				{ merge: true }
+			);
 		},
 
 		async rename(oldNameRaw: string, newNameRaw: string): Promise<void> {
@@ -85,19 +117,23 @@ function createCategoriesStore() {
 			const oldId = normalizeId(oldName);
 			const newId = normalizeId(newName);
 
-			// Update products referencing the old category name, and migrate the category doc.
+			// Carry over existing color if present, otherwise pick new one
+			const existing = list.find((c) => c.id === oldId);
+			const color = existing?.color ?? pickColor(newName);
+
 			const batch = writeBatch(db);
+			batch.set(
+				doc(db, CATEGORIES_COL, newId),
+				{ name: newName, color, createdAt: serverTimestamp() },
+				{ merge: true }
+			);
 
-			// Create/overwrite new category doc
-			batch.set(doc(db, CATEGORIES_COL, newId), { name: newName, createdAt: serverTimestamp() }, { merge: true });
-
-			// Update products category field
-			const prodSnap = await getDocs(query(collection(db, PRODUCTS_COL), where('category', '==', oldName)));
+			const prodSnap = await getDocs(
+				query(collection(db, PRODUCTS_COL), where('category', '==', oldName))
+			);
 			prodSnap.forEach((p) => batch.update(p.ref, { category: newName }));
 
-			// Delete old category doc (best-effort)
 			batch.delete(doc(db, CATEGORIES_COL, oldId));
-
 			await batch.commit();
 		},
 
@@ -105,19 +141,14 @@ function createCategoriesStore() {
 			const name = nameRaw.trim();
 			if (!name) return { ok: false, reason: 'invalid_name' };
 
-			// Block deletion if any product uses the category
-			const prodSnap = await getDocs(query(collection(db, PRODUCTS_COL), where('category', '==', name)));
+			const prodSnap = await getDocs(
+				query(collection(db, PRODUCTS_COL), where('category', '==', name))
+			);
 			if (!prodSnap.empty) return { ok: false, reason: 'in_use' };
 
 			const id = normalizeId(name);
 			await deleteDoc(doc(db, CATEGORIES_COL, id));
 			return { ok: true };
-		},
-
-		async updateNameById(id: string, nameRaw: string): Promise<void> {
-			const name = nameRaw.trim();
-			if (!name) return;
-			await updateDoc(doc(db, CATEGORIES_COL, id), { name });
 		},
 
 		async setIconKeys(id: string, iconKeys: ProductIconKey[]): Promise<void> {
@@ -127,4 +158,3 @@ function createCategoriesStore() {
 }
 
 export const categories = createCategoriesStore();
-
