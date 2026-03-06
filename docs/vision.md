@@ -75,11 +75,11 @@ Larger neighbouring stores face analogous problems at scale. Without inventory m
 
 ### In Scope (v1)
 
-- **Sales** — session-based sales with tap-to-add product grid, running cart, and inline total. Supports fixed pricing, per-unit ceiling pricing, and open pricing (operator enters amount at sale time, used for ice bags). Confirmation handles exact payment (default), change display, and partial borrow (utang) with borrower selection. Per-item bottle deposit toggle and per-item discount button.
+- **Sales** — session-based sales with tap-to-add product grid, collapsible running cart, and inline total. Supports fixed pricing, per-unit ceiling pricing, and open pricing (operator enters amount at sale time, used for ice bags). Confirmation handles exact payment (default), change display, and partial borrow (utang) with borrower selection. Per-item bottle deposit toggle and per-item discount button. Category filter in vertical left sidebar (single-select).
 
 - **Products** — catalogue management (add, edit, remove). Supports fixed, per-unit, and open pricing modes. Products organised by one of 8 defined categories: Smokes, Snacks, Drinks, Instant Drinks, Alcohol, Food, Toiletries, Load. Optional bottle deposit, optional discount amount, unit labels, and a stock-tracking flag for uncountable products (ice, load). Bulk CSV/XLSX import planned.
 
-- **Borrows** — utang tracking with borrower profiles. Individual borrow records per sale (not a pooled balance). Partial and full settlement supported, each creating a payment record. Outstanding balance warning during sale confirmation.
+- **Borrows** — utang tracking with borrower profiles. Borrowers can be added, renamed, and deleted directly from the Borrows tab. Individual borrow records per sale (not a pooled balance). Partial and full settlement supported, each creating a payment record. Outstanding balance warning during sale confirmation and borrower deletion.
 
 - **Statistics** — daily, weekly, monthly, and annual revenue summaries with top products and a sales log.
 
@@ -109,7 +109,7 @@ Larger neighbouring stores face analogous problems at scale. Without inventory m
 
 ### Key Architectural Principles
 
-- **Offline-first** — all features must function without network access; Firestore handles sync transparently when connectivity returns. High-frequency writes (sale confirmation) use fire-and-forget — cart resets immediately, write is queued offline.
+- **Offline-first** — all features must function without network access; Firestore handles sync transparently when connectivity returns. High-frequency writes (sale confirmation, product mutations) use fire-and-forget — UI resets immediately, write is queued offline.
 - **Single shared Firebase account** — no multi-user auth complexity for v1
 - **No native build pipeline** — PWA eliminates Gradle, EAS, and Kotlin version friction entirely
 - **Agile delivery** — one working, testable feature per sprint; no scaffolding without running code
@@ -129,13 +129,25 @@ Development follows an agile cadence with short sprints. Each sprint delivers a 
 - **Sprint 0:** Environment setup, Firebase project, PWA scaffold — success criterion is app installs and opens on Android ✅ [COMPLETED]
 - **Sprint 1:** Product catalogue management — success criterion is operators can add, edit, and delete products ✅ [COMPLETED]
 - **Sprint 2:** Sales session — success criterion is operators can log a sale and confirm as cash, exact, or borrow ✅ [COMPLETED]
-- **Sprint 3:** Borrows management + Sales UX overhaul + Category management — current sprint [IN PROGRESS]
-  - **Borrows management:** [NOT STARTED] - Borrowers list, borrow records, and payment recording not yet implemented
-  - **Sales UX overhaul:** [NOT STARTED] - Inline confirm panel and responsive layout not yet implemented  
-  - **Category management:** [NOT STARTED] - Runtime category management not yet implemented
+- **Sprint 3:** Borrows management + Sales UX overhaul + Category management ✅ [COMPLETED]
+  - **Borrows management:** Borrowers list with outstanding balances, borrower detail with borrow records and status badges, payment recording (partial and full), add/rename/delete borrowers from Borrows tab, outstanding balance warning on deletion ✅
+  - **Sales UX overhaul:** Vertical left sidebar category filter (single-select, color-coded), collapsible cart strip with drag handle, collapsible confirm panel (auto-expands on borrow), deposit/discount buttons filled when active, product names 2-line clamped ✅
+  - **Category management:** Runtime add/rename/delete categories, auto-assigned category colors (deterministic palette), color swatches in Categories list, colored left-border subheadings in Products and Sales ✅
+  - **Bug fixes:** Borrows list not displaying (`$derived` wrapping bug), offline product adding now works (fire-and-forget writes) ✅
 - **Sprint 4:** Statistics — revenue summaries and sales log [PLANNED]
 - **Sprint 5:** Inventory — stock tracking and restock logging [PLANNED]
 - **Sprint 6:** Assistant Phase 1 — rule-based insights [PLANNED]
+
+### Deferred from Sprint 3 to later sprints
+
+The following items from operator feedback are queued for future sprints:
+
+- **Sprint 4:** Tab swipe gestures, dark mode, icon color tinting, phase-out of legacy emoji icons
+- **Backlog (post-v1):** Custom product ordering, optional subcategories, custom product images
+
+### Client Feedback Backlog (comments.txt)
+
+The `comments.txt` file serves as the living operator feedback backlog. Items are reviewed at the start of each sprint and folded into the relevant sprint scope or deferred. It is the primary channel for operator-to-developer communication between sessions.
 
 ### Agentic Development (from Sprint 3)
 

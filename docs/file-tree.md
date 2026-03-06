@@ -1,10 +1,10 @@
 C:\USERS\JOAQAMOLE\SARISARIFY\SRC
 ├───lib
 │   ├───components
-│   ├───firebase   
-│   └───stores     
+│   ├───firebase
+│   └───stores
 └───routes
-    └───(app)      
+    └───(app)
         ├───borrows
         │   └───[borrowerId]
         ├───inventory
