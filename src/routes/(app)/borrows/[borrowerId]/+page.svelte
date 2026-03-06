@@ -10,6 +10,12 @@
 	let borrowerName = $state<string>('');
 	let list = $state<BorrowRecord[]>([]);
 
+	let totalOutstanding = $derived(
+		list
+			.filter((b) => b.status !== 'paid')
+			.reduce((sum, b) => sum + (b.remainingAmount ?? 0), 0)
+	);
+
 	let recordingTarget = $state<BorrowRecord | null>(null);
 	let savingPayment = $state(false);
 
@@ -52,7 +58,7 @@
 </script>
 
 <div class="mx-auto flex h-full w-full max-w-5xl flex-col">
-	<header class="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
+	<header class="flex items-center gap-3 border-b border-emerald-100 bg-emerald-50 px-4 py-4">
 		<a
 			href="/borrows"
 			class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-700 active:bg-gray-200"
@@ -62,7 +68,12 @@
 		</a>
 		<div class="min-w-0">
 			<h1 class="truncate text-base font-bold text-gray-900">{borrowerName || 'Borrower'}</h1>
-			<p class="text-xs text-gray-400">{list.length} record{list.length !== 1 ? 's' : ''}</p>
+			<p class="text-xs text-gray-400">
+				{list.length} record{list.length !== 1 ? 's' : ''}
+				{#if totalOutstanding > 0}
+					· <span class="font-semibold text-amber-600">{formatPeso(totalOutstanding)} outstanding</span>
+				{/if}
+			</p>
 		</div>
 	</header>
 

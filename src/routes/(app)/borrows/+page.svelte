@@ -25,7 +25,7 @@
 </script>
 
 <div class="mx-auto flex h-full w-full max-w-5xl flex-col">
-	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
+	<header class="flex items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 py-4">
 		<div>
 			<h1 class="text-lg font-bold text-gray-900">Borrows</h1>
 			<p class="text-xs text-gray-400">
