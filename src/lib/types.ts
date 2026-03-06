@@ -118,3 +118,20 @@ export interface BorrowPayment {
 }
 
 export type NewBorrowPayment = Omit<BorrowPayment, 'id' | 'createdAt'>;
+
+// --- Stock Adjustments (Sprint 5) ---
+
+export type StockAdjustmentReason = 'restock_add' | 'restock_set' | 'personal_use' | 'sale';
+
+export interface StockAdjustment {
+	id: string;
+	productId: string;
+	productName: string;       // snapshot
+	reason: StockAdjustmentReason;
+	delta: number;             // positive = stock added, negative = stock removed
+	stockAfter: number;        // stock level after adjustment
+	note?: string;
+	createdAt: Timestamp;
+}
+
+export type NewStockAdjustment = Omit<StockAdjustment, 'id' | 'createdAt'>;

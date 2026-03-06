@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import type { Product, SaleLineItem } from '$lib/types';
+import { products } from '$lib/stores/products.svelte.ts';
 
 // ---------------------------------------------------------------------------
 // Cart item — in-memory only, never persisted until confirmed
@@ -121,6 +122,7 @@ function createSalesStore() {
 		// OFFLINE-FIRST: cart is reset immediately before the Firestore write.
 		// The write is fired without awaiting — Firestore's persistent cache queues it
 		// and syncs when connectivity returns. The UI never blocks on network.
+
 		confirm(params: {
 			cashCollected: number;
 			borrowerId?: string;
@@ -156,8 +158,18 @@ function createSalesStore() {
 			if (params.borrowerName) saleData.borrowerName = params.borrowerName;
 			if (params.note)         saleData.note         = params.note;
 
+			const cartSnapshot = [...cart];
+
 			// Reset cart immediately — do not wait for Firestore
 			cart = [];
+
+			// Decrement stock for all tracked products — fire-and-forget
+			for (const item of items) {
+				const p = cartSnapshot.find((c) => c.product.id === item.productId)?.product;
+				if (p?.trackStock) {
+					products.decrementStock(p.id, item.quantity);
+				}
+			}
 
 			// Fire-and-forget write — Firestore handles offline queuing
 			if (borrowAmount > 0 && params.borrowerId) {
