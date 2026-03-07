@@ -134,15 +134,33 @@ Development follows an agile cadence with short sprints. Each sprint delivers a 
   - **Sales UX overhaul:** Vertical left sidebar category filter (single-select, color-coded), collapsible cart strip with drag handle, collapsible confirm panel (auto-expands on borrow), deposit/discount buttons filled when active, product names 2-line clamped ✅
   - **Category management:** Runtime add/rename/delete categories, auto-assigned category colors (deterministic palette), color swatches in Categories list, colored left-border subheadings in Products and Sales ✅
   - **Bug fixes:** Borrows list not displaying (`$derived` wrapping bug), offline product adding now works (fire-and-forget writes) ✅
-- **Sprint 4:** Statistics — revenue summaries and sales log [PLANNED]
-- **Sprint 5:** Inventory — stock tracking and restock logging [PLANNED]
-- **Sprint 6:** Assistant Phase 1 — rule-based insights [PLANNED]
+- **Sprint 4:** Statistics — revenue summaries and sales log ✅ [COMPLETED]
+  - Period selector (Day / Week / Month / Year) ✅
+  - Revenue summary card: total, sale count, utang subtotal per period ✅
+  - Top 5 products by revenue per period ✅
+  - Sales log scoped to selected period (links to existing sale detail screen) ✅
+  - All computed client-side from `salesHistory` store — no new Firestore queries ✅
+- **Sprint 5:** Inventory — stock tracking and restock logging ✅ [COMPLETED]
+  - Inventory screen: tracked products list with stock level, color-coded (red = 0, amber ≤ 5, black > 5) ✅
+  - Restock modal: Add N units or Set exact count, fire-and-forget, toast feedback ✅
+  - Personal use modal: deduct stock without a sale record, fire-and-forget, toast feedback ✅
+  - Auto-decrement on sale confirm: `sales.svelte.ts` decrements stock for all tracked products ✅
+  - `StockAdjustment` type added to `types.ts`; all adjustments logged to `stockAdjustments` collection ✅
+  - `products.svelte.ts`: added `restock()`, `personalUse()`, `decrementStock()` ✅
+- **Sprint 6:** UX polish + Data management ✅ [COMPLETED]
+  - Dark mode: full app, CSS-override approach (unlayered rules in `app.css`, no per-component `dark:` variants), anti-flash script in `app.html` ✅
+  - Tab swipe gestures: touch delta detection in `+layout.svelte`, swipes left/right between tabs ✅
+  - Icon color tinting: `ProductIcon` accepts `color` prop, sales grid and cart icons tinted by category color ✅
+  - Legacy emoji phase-out: emoji input removed from `ProductForm`; `iconEmoji` field retained for backwards compatibility with existing products ✅
+  - Settings sheet: gear icon in nav, dark mode toggle, data management section ✅
+  - Data management: clear all sales (sales + stockAdjustments), clear all borrow data (borrows + borrowPayments) — two-step confirmation, batch deletes ✅
+- **Sprint 7:** Assistant Phase 1 — rule-based insights [PLANNED]
 
 ### Deferred from Sprint 3 to later sprints
 
 The following items from operator feedback are queued for future sprints:
 
-- **Sprint 4:** Tab swipe gestures, dark mode, icon color tinting, phase-out of legacy emoji icons
+- **Sprint 7:** Tab swipe active-state flash (minor, low priority), additional UX polish from operator feedback
 - **Backlog (post-v1):** Custom product ordering, optional subcategories, custom product images
 
 ### Client Feedback Backlog (comments.txt)

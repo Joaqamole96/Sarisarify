@@ -208,16 +208,6 @@
 					{/each}
 				</div>
 			{/if}
-			<p class="mt-2 text-xs text-gray-400">
-				Legacy emoji (optional):
-			</p>
-			<input
-				type="text"
-				bind:value={iconEmoji}
-				placeholder="Leave blank to use icons"
-				class="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm
-					text-gray-900 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100"
-			/>
 		</div>
 
 		<!-- Name -->

@@ -8,10 +8,11 @@
 		<link rel="manifest" href="/manifest.webmanifest" />
 		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<script>
+			try { if (localStorage.theme === 'dark') document.documentElement.classList.add('dark'); } catch {}
+		</script>
 		%sveltekit.head%
 	</head>
-	<!-- tap: preloads on touchstart — correct for Android Chrome. -->
-	<!-- hover was the previous value and does nothing on touch devices. -->
 	<body data-sveltekit-preload-data="tap" class="bg-white">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>

@@ -1,1 +1,52 @@
 @import 'tailwindcss';
+@variant dark (&:is(.dark *));
+
+/* ── Dark mode color overrides ──────────────────────────────────────────────
+   Unlayered CSS beats Tailwind's @layer utilities — no dark: variants needed
+   in components. Apply dark class to <html> to activate.
+────────────────────────────────────────────────────────────────────────── */
+
+/* Backgrounds */
+.dark .bg-white            { background-color: rgb(17 24 39);        } /* gray-900 */
+.dark .bg-white\/95        { background-color: rgb(17 24 39 / 0.95); }
+.dark .bg-white\/70        { background-color: rgb(17 24 39 / 0.70); }
+.dark .bg-gray-50          { background-color: rgb(31 41 55);        } /* gray-800 */
+.dark .bg-gray-100         { background-color: rgb(55 65 81);        } /* gray-700 */
+.dark .bg-gray-200         { background-color: rgb(75 85 99);        } /* gray-600 */
+.dark .bg-emerald-50       { background-color: rgb(31 41 55);        } /* gray-800 */
+.dark .bg-emerald-50\/40   { background-color: rgb(3 7 18);          } /* gray-950 */
+.dark .bg-green-50         { background-color: rgb(5 46 22);         } /* green-950 */
+.dark .bg-green-100        { background-color: rgb(20 83 45);        } /* green-900 */
+.dark .bg-amber-50         { background-color: rgb(69 26 3);         } /* amber-950 */
+.dark .bg-amber-100        { background-color: rgb(120 53 15);       } /* amber-900 */
+.dark .bg-blue-100         { background-color: rgb(23 37 84);        } /* blue-900 */
+.dark .bg-orange-100       { background-color: rgb(67 20 7);         } /* orange-900 */
+.dark .bg-red-50           { background-color: rgb(63 0 0);          } /* red-950 */
+.dark .bg-red-100          { background-color: rgb(127 29 29);       } /* red-900 */
+
+/* Borders */
+.dark .border-gray-100     { border-color: rgb(31 41 55);  } /* gray-800 */
+.dark .border-gray-200     { border-color: rgb(55 65 81);  } /* gray-700 */
+.dark .border-emerald-100  { border-color: rgb(31 41 55);  } /* gray-800 */
+.dark .border-green-200    { border-color: rgb(22 101 52); } /* green-800 */
+.dark .border-amber-200    { border-color: rgb(146 64 14); } /* amber-800 */
+.dark .border-red-200      { border-color: rgb(153 27 27); } /* red-800 */
+
+/* Text */
+.dark .text-gray-900  { color: rgb(249 250 251); } /* gray-50  */
+.dark .text-gray-800  { color: rgb(243 244 246); } /* gray-100 */
+.dark .text-gray-700  { color: rgb(209 213 219); } /* gray-300 */
+.dark .text-gray-600  { color: rgb(156 163 175); } /* gray-400 */
+.dark .text-gray-500  { color: rgb(156 163 175); } /* gray-400 */
+.dark .text-gray-400  { color: rgb(107 114 128); } /* gray-500 */
+.dark .text-gray-300  { color: rgb(75 85 99);    } /* gray-600 */
+.dark .text-green-700 { color: rgb(74 222 128);  } /* green-400 */
+.dark .text-green-800 { color: rgb(134 239 172); } /* green-300 */
+.dark .text-amber-700 { color: rgb(251 191 36);  } /* amber-400 */
+.dark .text-amber-600 { color: rgb(251 191 36);  } /* amber-400 */
+.dark .text-amber-800 { color: rgb(252 211 77);  } /* amber-300 */
+.dark .text-blue-600  { color: rgb(96 165 250);  } /* blue-400  */
+.dark .text-orange-600 { color: rgb(251 146 60); } /* orange-400 */
+.dark .text-red-600   { color: rgb(248 113 113); } /* red-400   */
+.dark .text-red-700   { color: rgb(248 113 113); } /* red-400   */
+.dark .text-red-800   { color: rgb(252 165 165); } /* red-300   */

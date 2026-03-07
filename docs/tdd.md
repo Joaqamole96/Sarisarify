@@ -215,6 +215,23 @@ Each settlement event creates a new `BorrowPayment` document. The parent `Borrow
 
 ---
 
+## 4.4 StockAdjustment
+
+Stock mutations outside of sale confirmation (restock and personal use) are logged to a Firestore collection named `stockAdjustments`. Sale-driven decrements are not logged here — they are implicit in the sale record.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Firestore document ID. |
+| `productId` | `string` | Reference to the product. |
+| `productName` | `string` | Snapshot of product name at time of adjustment. |
+| `reason` | `'restock_add' \| 'restock_set' \| 'personal_use' \| 'sale'` | Reason for the adjustment. |
+| `delta` | `number` | Positive = stock added, negative = stock removed. |
+| `stockAfter` | `number` | Stock level immediately after this adjustment. |
+| `note` | `string?` | Optional operator note. Personal use always sets `note = 'personal use'`. |
+| `createdAt` | `Timestamp` | Server timestamp. |
+
+---
+
 ## 5. Sales Behaviour Rules
 
 ### 5.1 Confirmation Flow
@@ -265,7 +282,7 @@ Deleting a borrower removes only the `borrowers` profile document. All `BorrowRe
 
 ---
 
-## 7. Inventory Rules
+## 7. Inventory Rules [IMPLEMENTED]
 
 ### 7.1 Stock Tracking Flag
 
@@ -273,12 +290,52 @@ Products with `trackStock = false` are excluded from all inventory screens, low-
 
 ### 7.2 Restock Modes
 
-- **Add N units:** `stock = stock + N`. Used for standard restocks.
+- **Add N units:** `stock = stock + N`. Used for standard restocks. Uses Firestore `increment(N)` — safe for offline concurrent writes.
 - **Set exact count:** `stock = N`. Used for drift correction after pack-sold products (e.g. candy counted by the piece from a 50-piece pack).
+
+Both modes are fire-and-forget and log a `StockAdjustment` document to `stockAdjustments`.
 
 ### 7.3 Personal Use Adjustment
 
-Operators may take products for personal use. This deducts stock without creating a sale record. It is recorded with a date and reason of `'personal use'` and appears in the product's adjustment history log (I-6). It does not appear in sales statistics.
+Operators may take products for personal use. This deducts stock without creating a sale record. Uses Firestore `increment(-N)`. Records a `StockAdjustment` with `reason = 'personal_use'` and `note = 'personal use'`. Does not appear in sales statistics.
+
+### 7.4 Auto-Decrement on Sale
+
+When a sale is confirmed, `sales.svelte.ts` iterates confirmed line items and calls `products.decrementStock(productId, quantity)` for every item where `product.trackStock === true`. This is fire-and-forget. Untracked products (open-priced, load, ice) are skipped silently.
+
+### 7.5 Stock Color Coding (Inventory Screen)
+
+Stock counts are color-coded on the inventory list:
+- `stock === 0` → red (`text-red-600`)
+- `stock <= 5` → amber (`text-amber-600`)
+- `stock > 5` → default black (`text-gray-900`)
+
+---
+
+## 9. Statistics Rules [IMPLEMENTED]
+
+### 9.1 Period Filter
+
+The Stats tab supports four periods: Day (today), Week (Mon–today), Month (1st–today), Year (Jan 1–today). Period boundaries are calculated client-side using `new Date()` at render time. The selected period filters `salesHistory.list` via `$derived.by`.
+
+### 9.2 Data Source
+
+All statistics are derived client-side from `salesHistory.list` — the last 200 sales ordered by `createdAt` desc. No additional Firestore queries are made for statistics. This means the Year view silently under-counts if more than 200 sales exist in the year — acceptable for v1.
+
+### 9.3 Summary Card
+
+Displays for the selected period:
+- `periodTotal` — sum of all `sale.total` values
+- Sale count
+- `periodBorrow` — sum of all `sale.borrowAmount` values (shown only when > 0)
+
+### 9.4 Top Products
+
+Top 5 products by revenue for the selected period. Aggregated by `productId` across all `sale.items`. Each entry shows rank, product name, total quantity sold (`×qty`), and total revenue. Sorted descending by revenue.
+
+### 9.5 Sales Log
+
+Period-scoped list of individual sales, ordered latest-first (inherits `salesHistory.list` ordering). Each row links to the existing `stats/[saleId]` detail screen. Utang sales show a borrower badge.
 
 ---
 
@@ -322,4 +379,16 @@ Bundle pricing (`per_bundle` mode) is fully implemented with `bundleQuantity` an
 
 ### 8.9 Category Color System
 
-Each category has a `color` field (hex string) stored in Firestore. Colors are auto-assigned on category creation using a deterministic hash of the category name mapped to an 8-colour palette. Existing categories without a `color` field receive a fallback color derived the same way via client-side computation in the `onSnapshot` handler. Colors are used as visual identifiers in the Products subheading left borders, the Sales category sidebar buttons, and the Categories management list swatches. Colors are never user-selectable in v1.
+Each category has a `color` field (hex string) stored in Firestore. Colors are auto-assigned on category creation using a deterministic hash of the category name mapped to an 8-colour palette. Existing categories without a `color` field receive a fallback color derived the same way via client-side computation in the `onSnapshot` handler. Colors are used as visual identifiers in the Products subheading left borders, the Sales category sidebar buttons, the Categories management list swatches, and product icon tinting on the Sales grid. Colors are never user-selectable in v1.
+
+### 8.10 Dark Mode
+
+Dark mode is implemented via a single CSS-override block in `src/app.css` using unlayered rules (outside any `@layer`). Unlayered CSS has higher specificity than Tailwind's layered utilities, so every `bg-white`, `text-gray-900`, etc. is remapped without adding `dark:` variants to any component. The `dark` class is toggled on `<html>`. An anti-flash inline script in `src/app.html` reads `localStorage.theme` and applies the class before first paint. Theme state is managed by `src/lib/stores/theme.svelte.ts` which also keeps `localStorage` in sync.
+
+### 8.11 Icon Color Tinting
+
+`ProductIcon` accepts an optional `color` prop (CSS color string). When provided, it is applied as an inline `style="color: {color}"` on the lucide icon, overriding `currentColor`. This allows product icons in the Sales grid and cart strip to be tinted with their category color. Emoji icons are not tinted — the prop is silently ignored for emoji fallbacks.
+
+### 8.12 Data Administration
+
+`src/lib/stores/dataAdmin.ts` exposes `clearSales()` and `clearBorrows()` for system evaluation and data resets. Both operations use Firestore batch deletes in chunks of 400 (within the 500-operation batch limit). Accessible via the Settings sheet in the bottom nav. Two-step confirmation is required before any delete executes. Products, categories, and borrower profiles are never affected.

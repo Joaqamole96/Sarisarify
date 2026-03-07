@@ -161,7 +161,8 @@
 								<ProductIcon
 									iconKey={item.product.iconKey}
 									iconEmoji={item.product.iconEmoji}
-									class="h-4 w-4 text-gray-900"
+									color={categoryColor(item.product.category)}
+									class="h-4 w-4"
 								/>
 								<span class="truncate text-gray-700">{item.product.name}</span>
 								{#if item.product.pricingMode === 'open'}
@@ -291,7 +292,8 @@
 											<ProductIcon
 												iconKey={product.iconKey}
 												iconEmoji={product.iconEmoji}
-												class="h-8 w-8 text-gray-900"
+												color={categoryColor(product.category)}
+												class="h-8 w-8"
 											/>
 										</span>
 										<p class="w-full line-clamp-2 text-[11px] font-semibold leading-tight text-gray-900">
